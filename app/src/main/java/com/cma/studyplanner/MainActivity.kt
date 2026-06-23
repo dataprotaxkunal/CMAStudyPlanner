@@ -1,3 +1,7 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.cma.studyplanner
 
 import android.Manifest
@@ -70,7 +74,6 @@ data class NavItem(
     val unselectedIcon: ImageVector
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainApp(vm: MainViewModel) {
     var currentRoute by remember { mutableStateOf("dashboard") }

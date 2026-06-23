@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.cma.studyplanner.ui.components
 
 import androidx.compose.animation.animateContentSize
@@ -209,7 +211,6 @@ fun EmptyState(emoji: String, title: String, subtitle: String = "") {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InputDialog(
     title: String,

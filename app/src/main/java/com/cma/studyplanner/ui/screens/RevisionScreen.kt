@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.cma.studyplanner.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -19,7 +21,6 @@ import com.cma.studyplanner.ui.theme.*
 import com.cma.studyplanner.viewmodel.MainViewModel
 import java.time.LocalDate
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RevisionScreen(vm: MainViewModel) {
     val subjects by vm.subjectsWithChapters.collectAsState()

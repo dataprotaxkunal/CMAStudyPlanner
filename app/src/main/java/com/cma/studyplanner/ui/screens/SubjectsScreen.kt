@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.cma.studyplanner.ui.screens
 
 import androidx.compose.animation.animateContentSize
@@ -241,7 +243,6 @@ fun SubjectsScreen(vm: MainViewModel) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AddSubjectDialog(
     availableSubjects: List<String>,
