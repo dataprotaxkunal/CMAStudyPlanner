@@ -155,7 +155,7 @@ fun DashboardScreen(vm: MainViewModel) {
                         // Progress bar
                         Box(modifier = Modifier.width(80.dp)) {
                             LinearProgressIndicator(
-                                progress = { progress },
+                                progress = progress,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(8.dp)

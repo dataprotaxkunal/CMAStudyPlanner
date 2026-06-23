@@ -110,13 +110,13 @@ fun FocusScreen(vm: MainViewModel, onClose: () -> Unit) {
                 modifier = Modifier.size(250.dp)
             ) {
                 CircularProgressIndicator(
-                    progress = { 1f },
+                    progress = 1f,
                     modifier = Modifier.fillMaxSize(),
                     color = Color.White.copy(alpha = 0.08f),
                     strokeWidth = 8.dp,
                 )
                 CircularProgressIndicator(
-                    progress = { progress },
+                    progress = progress,
                     modifier = Modifier.fillMaxSize(),
                     color = if (mode == "study") Indigo else Green,
                     strokeWidth = 8.dp,

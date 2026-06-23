@@ -75,13 +75,13 @@ fun ProgressRing(
         modifier = Modifier.size(size.dp)
     ) {
         CircularProgressIndicator(
-            progress = { 1f },
+            progress = 1f,
             modifier = Modifier.fillMaxSize(),
             color = color.copy(alpha = 0.15f),
             strokeWidth = strokeWidth.dp,
         )
         CircularProgressIndicator(
-            progress = { progress },
+            progress = progress,
             modifier = Modifier.fillMaxSize(),
             color = color,
             strokeWidth = strokeWidth.dp,

@@ -120,7 +120,7 @@ fun SubjectsScreen(vm: MainViewModel) {
                         // Progress bar
                         if (totalCh > 0) {
                             LinearProgressIndicator(
-                                progress = { doneCh.toFloat() / totalCh },
+                                progress = doneCh.toFloat() / totalCh,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp)
@@ -241,6 +241,7 @@ fun SubjectsScreen(vm: MainViewModel) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AddSubjectDialog(
     availableSubjects: List<String>,
