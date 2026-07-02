@@ -27,6 +27,10 @@ class PrefsManager(context: Context) {
         get() = prefs.getBoolean("app_blocking", true)
         set(value) = prefs.edit().putBoolean("app_blocking", value).apply()
 
+    var calendarSyncEnabled: Boolean
+        get() = prefs.getBoolean("calendar_sync", true)
+        set(value) = prefs.edit().putBoolean("calendar_sync", value).apply()
+
     // Whitelist: phone, messages, settings, this app
     val whitelistedPackages: Set<String>
         get() = setOf(

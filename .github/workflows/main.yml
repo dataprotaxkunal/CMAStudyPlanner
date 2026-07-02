@@ -13,24 +13,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Fix all compile errors
-      run: |
-        cd app/src/main/java/com/cma/studyplanner
-        sed -i '/googlefonts/d' ui/theme/Theme.kt
-        for f in ui/screens/ScheduleScreen.kt ui/screens/RevisionScreen.kt ui/screens/FocusScreen.kt ui/screens/CalendarScreen.kt ui/screens/SettingsScreen.kt ui/screens/DashboardScreen.kt ui/screens/SubjectsScreen.kt ui/components/Components.kt MainActivity.kt; do
-          if ! grep -q "@file:OptIn" "$f" 2>/dev/null; then
-            sed -i '1s/^/@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)\n/' "$f"
-          fi
-        done
-        sed -i 's/@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)/@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)/' ui/screens/SubjectsScreen.kt
-        sed -i 's/@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)/@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)/' MainActivity.kt
-        find . -name "*.kt" -exec sed -i 's/progress = { 1f },/progress = 1f,/g' {} \;
-        find . -name "*.kt" -exec sed -i 's/progress = { progress },/progress = progress,/g' {} \;
-        find . -name "*.kt" -exec sed -i 's/progress = { doneCh.toFloat() \/ totalCh },/progress = doneCh.toFloat() \/ totalCh,/g' {} \;
-        find . -name "*.kt" -exec sed -i '/^@OptIn(ExperimentalMaterial3Api/d' {} \;
-        find . -name "*.kt" -exec sed -i '/^@OptIn(ExperimentalLayoutApi/d' {} \;
-        find . -name "*.kt" -exec sed -i 's/mutableIntStateOf/mutableStateOf/g' {} \;
-
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -43,29 +25,9 @@ jobs:
         gradle-version: '8.5'
 
     - name: Build Debug APK
-      run: |
-        gradle assembleDebug 2>&1 | tee build_output.txt || true
-        echo ""
-        echo "========== KOTLIN ERRORS =========="
-        grep "^e:" build_output.txt || echo "No e: errors found"
-        echo "========== END ERRORS =========="
-        echo ""
-        if grep -q "BUILD SUCCESSFUL" build_output.txt; then
-          echo "BUILD PASSED"
-        else
-          echo "BUILD FAILED - see errors above"
-          exit 1
-        fi
-
-    - name: Upload error log
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-errors
-        path: build_output.txt
+      run: gradle assembleDebug
 
     - name: Upload APK
-      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: CMAStudyPlanner-APK

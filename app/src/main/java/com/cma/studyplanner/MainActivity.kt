@@ -1,6 +1,4 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 
 package com.cma.studyplanner
 
@@ -12,8 +10,11 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -25,23 +26,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cma.studyplanner.ui.screens.*
 import com.cma.studyplanner.ui.theme.CMATheme
 import com.cma.studyplanner.viewmodel.MainViewModel
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
     private val notifPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { /* handled */ }
+    ) { }
+
+    private val calendarPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Request notification permission for Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED
@@ -50,11 +54,19 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        // Request calendar permissions
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_CALENDAR)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            calendarPermissionLauncher.launch(
+                arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR)
+            )
+        }
+
         setContent {
             CMATheme {
                 val vm: MainViewModel = viewModel()
 
-                // Toast observer
                 LaunchedEffect(Unit) {
                     vm.toastMessage.collectLatest { msg ->
                         Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show()
@@ -68,7 +80,6 @@ class MainActivity : ComponentActivity() {
 }
 
 data class NavItem(
-    val route: String,
     val label: String,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector
@@ -76,23 +87,26 @@ data class NavItem(
 
 @Composable
 fun MainApp(vm: MainViewModel) {
-    var currentRoute by remember { mutableStateOf("dashboard") }
     var showFocus by remember { mutableStateOf(false) }
 
     val navItems = listOf(
-        NavItem("dashboard", "Home", Icons.Filled.Home, Icons.Outlined.Home),
-        NavItem("subjects", "Subjects", Icons.Filled.MenuBook, Icons.Outlined.MenuBook),
-        NavItem("calendar", "Calendar", Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
-        NavItem("schedule", "Schedule", Icons.Filled.Schedule, Icons.Outlined.Schedule),
-        NavItem("revision", "Revision", Icons.Filled.Replay, Icons.Outlined.Replay),
-        NavItem("settings", "Settings", Icons.Filled.Settings, Icons.Outlined.Settings),
+        NavItem("Home", Icons.Filled.Home, Icons.Outlined.Home),
+        NavItem("Subjects", Icons.Filled.MenuBook, Icons.Outlined.MenuBook),
+        NavItem("Calendar", Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
+        NavItem("Schedule", Icons.Filled.Schedule, Icons.Outlined.Schedule),
+        NavItem("Revision", Icons.Filled.Replay, Icons.Outlined.Replay),
+        NavItem("Settings", Icons.Filled.Settings, Icons.Outlined.Settings),
     )
 
-    // Full-screen focus mode
+    // Focus mode is separate full-screen
     if (showFocus) {
         FocusScreen(vm = vm, onClose = { showFocus = false })
         return
     }
+
+    // Pager state for swipe navigation
+    val pagerState = rememberPagerState(pageCount = { navItems.size })
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         bottomBar = {
@@ -100,14 +114,15 @@ fun MainApp(vm: MainViewModel) {
                 tonalElevation = 2.dp,
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
-                // Main nav items (first 4)
-                navItems.take(4).forEach { item ->
+                navItems.take(3).forEachIndexed { index, item ->
                     NavigationBarItem(
-                        selected = currentRoute == item.route,
-                        onClick = { currentRoute = item.route },
+                        selected = pagerState.currentPage == index,
+                        onClick = {
+                            scope.launch { pagerState.animateScrollToPage(index) }
+                        },
                         icon = {
                             Icon(
-                                if (currentRoute == item.route) item.selectedIcon else item.unselectedIcon,
+                                if (pagerState.currentPage == index) item.selectedIcon else item.unselectedIcon,
                                 contentDescription = item.label,
                                 modifier = Modifier.size(22.dp)
                             )
@@ -118,7 +133,7 @@ fun MainApp(vm: MainViewModel) {
                         alwaysShowLabel = true
                     )
                 }
-                // Focus mode button (center-ish)
+                // Focus button (center)
                 NavigationBarItem(
                     selected = false,
                     onClick = { showFocus = true },
@@ -131,18 +146,22 @@ fun MainApp(vm: MainViewModel) {
                         )
                     },
                     label = {
-                        Text("Focus", fontSize = 10.sp, fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            "Focus", fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                 )
-                // More items
-                navItems.drop(4).forEach { item ->
+                navItems.drop(3).forEachIndexed { index, item ->
+                    val actualIndex = index + 3
                     NavigationBarItem(
-                        selected = currentRoute == item.route,
-                        onClick = { currentRoute = item.route },
+                        selected = pagerState.currentPage == actualIndex,
+                        onClick = {
+                            scope.launch { pagerState.animateScrollToPage(actualIndex) }
+                        },
                         icon = {
                             Icon(
-                                if (currentRoute == item.route) item.selectedIcon else item.unselectedIcon,
+                                if (pagerState.currentPage == actualIndex) item.selectedIcon else item.unselectedIcon,
                                 contentDescription = item.label,
                                 modifier = Modifier.size(22.dp)
                             )
@@ -156,14 +175,19 @@ fun MainApp(vm: MainViewModel) {
             }
         }
     ) { padding ->
-        Box(modifier = Modifier.padding(padding)) {
-            when (currentRoute) {
-                "dashboard" -> DashboardScreen(vm)
-                "subjects" -> SubjectsScreen(vm)
-                "calendar" -> CalendarScreen(vm)
-                "schedule" -> ScheduleScreen(vm)
-                "revision" -> RevisionScreen(vm)
-                "settings" -> SettingsScreen(vm)
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) { page ->
+            when (page) {
+                0 -> DashboardScreen(vm)
+                1 -> SubjectsScreen(vm)
+                2 -> CalendarScreen(vm)
+                3 -> ScheduleScreen(vm)
+                4 -> RevisionScreen(vm)
+                5 -> SettingsScreen(vm)
             }
         }
     }

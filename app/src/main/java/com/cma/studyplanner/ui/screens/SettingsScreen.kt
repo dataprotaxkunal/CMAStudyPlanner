@@ -37,6 +37,7 @@ fun SettingsScreen(vm: MainViewModel) {
     var breakMin by remember { mutableStateOf(vm.focusBreakMinutes.toString()) }
     var dndOn by remember { mutableStateOf(vm.dndEnabled) }
     var blockOn by remember { mutableStateOf(vm.appBlockingEnabled) }
+    var calSync by remember { mutableStateOf(vm.calendarSyncEnabled) }
 
     Column(
         modifier = Modifier
@@ -180,6 +181,44 @@ fun SettingsScreen(vm: MainViewModel) {
                         suffix = { Text("min", fontSize = 12.sp, color = Muted) }
                     )
                 }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ── Google Calendar ──
+        SectionLabel("📅 Google Calendar Sync")
+
+        Card(
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(1.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Sync to Google Calendar", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text("Auto-add study sessions with reminders", fontSize = 12.sp, color = Muted)
+                    }
+                    Switch(
+                        checked = calSync,
+                        onCheckedChange = {
+                            calSync = it
+                            vm.updateCalendarSync(it)
+                        }
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "When enabled, each scheduled session is added to your Google Calendar with 5-min and 15-min reminders. Google Calendar will notify you even if this app is closed.",
+                    fontSize = 11.sp,
+                    color = Muted,
+                    lineHeight = 16.sp
+                )
             }
         }
 

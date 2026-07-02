@@ -98,6 +98,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val focusBreakMinutes: Int get() = prefs.focusBreakMinutes
     val dndEnabled: Boolean get() = prefs.dndEnabled
     val appBlockingEnabled: Boolean get() = prefs.appBlockingEnabled
+    val calendarSyncEnabled: Boolean get() = prefs.calendarSyncEnabled
 
     // ─── Stats ───
     fun getTotalChapters(): Int = subjectsWithChapters.value.sumOf { it.chapters.size }
@@ -194,7 +195,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 startTime = startTime, endTime = endTime)
             db.scheduleDao().insert(schedule)
             scheduleAlarm(schedule)
-            _toastMessage.emit("✅ Session scheduled with alarm")
+
+            // Sync to Google Calendar
+            if (prefs.calendarSyncEnabled) {
+                try {
+                    val eventId = com.cma.studyplanner.data.CalendarHelper.addEventToCalendar(
+                        getApplication(), subject, chapter, date, startTime, endTime
+                    )
+                    if (eventId > 0) {
+                        _toastMessage.emit("✅ Scheduled + added to Google Calendar")
+                    } else {
+                        _toastMessage.emit("✅ Scheduled (Calendar sync failed — check permissions)")
+                    }
+                } catch (e: Exception) {
+                    _toastMessage.emit("✅ Scheduled (Calendar permission needed)")
+                }
+            } else {
+                _toastMessage.emit("✅ Session scheduled with alarm")
+            }
         }
     }
 
@@ -242,6 +260,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     putExtra("title", "🔔 Study NOW!")
                     putExtra("body", "${schedule.subject} - ${schedule.chapter}")
                     putExtra("is_alarm", true)
+                    putExtra("subject", schedule.subject)
+                    putExtra("chapter", schedule.chapter)
+                    putExtra("time", "${formatTime12(schedule.startTime)} - ${formatTime12(schedule.endTime)}")
                 }
                 val alarmPending = android.app.PendingIntent.getBroadcast(
                     context, requestCode, alarmIntent,
@@ -396,6 +417,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateAppBlocking(enabled: Boolean) {
         prefs.appBlockingEnabled = enabled
+    }
+
+    fun updateCalendarSync(enabled: Boolean) {
+        prefs.calendarSyncEnabled = enabled
     }
 
     // ─── Calendar Navigation ───
