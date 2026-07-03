@@ -228,14 +228,7 @@ fun PlanScreen(vm: MainViewModel) {
         TabRow(
             selectedTabIndex = selectedTab,
             containerColor = Color.White,
-            contentColor = Color(0xFF6366F1),
-            indicator = { tabPositions ->
-                TabRowDefaults.Indicator(
-                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                    height = 3.dp,
-                    color = Color(0xFF6366F1)
-                )
-            }
+            contentColor = Color(0xFF6366F1)
         ) {
             tabs.forEachIndexed { index, title ->
                 Tab(

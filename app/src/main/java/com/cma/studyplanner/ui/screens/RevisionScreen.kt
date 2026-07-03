@@ -295,6 +295,8 @@ fun AddRevisionDialog(
                 }
 
                 OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
                     label = { Text("Notes (optional)") },
                     placeholder = { Text("e.g. Focus on formulas") },
                     modifier = Modifier.fillMaxWidth(),
