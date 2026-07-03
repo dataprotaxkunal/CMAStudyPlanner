@@ -13,6 +13,93 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Fix compile errors
+      run: |
+        cd app/src/main/java/com/cma/studyplanner
+        sed -i '/googlefonts/d' ui/theme/Theme.kt
+        
+        find . -name "*.kt" -exec sed -i '/@file:OptIn/d' {} \;
+        find . -name "*.kt" -exec sed -i '/^@OptIn(Experimental/d' {} \;
+        
+        for f in ui/screens/ScheduleScreen.kt ui/screens/RevisionScreen.kt ui/screens/FocusScreen.kt ui/screens/CalendarScreen.kt ui/screens/SettingsScreen.kt ui/screens/DashboardScreen.kt ui/screens/OnboardingScreen.kt ui/components/Components.kt; do
+          sed -i '1s/^/@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)\n/' "$f"
+        done
+        sed -i '1s/^/@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)\n/' ui/screens/SubjectsScreen.kt
+        sed -i '1s/^/@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)\n/' MainActivity.kt
+        
+        find . -name "*.kt" -exec sed -i 's/progress = { 1f },/progress = 1f,/g' {} \;
+        find . -name "*.kt" -exec sed -i 's/progress = { progress },/progress = progress,/g' {} \;
+        find . -name "*.kt" -exec sed -i 's/progress = { doneCh.toFloat() \/ totalCh },/progress = doneCh.toFloat() \/ totalCh,/g' {} \;
+        find . -name "*.kt" -exec sed -i 's/mutableIntStateOf/mutableStateOf/g' {} \;
+
+        # Fix 1: Remove tabIndicatorOffset (use default indicator)
+        sed -i '/tabIndicatorOffset/d' MainActivity.kt
+        sed -i '/indicator = {/,/}/{ /indicator/d; /tabPositions/d; /TabRowDefaults.Indicator/d; /modifier = Modifier/d; /height = 3.dp/d; /color = Color/d; /^[[:space:]]*}$/{ /}/d; }; }' MainActivity.kt
+
+        # Fix 2: Replace broken PlanScreen TabRow with simple version
+        python3 << 'PYFIX'
+        with open("MainActivity.kt") as f:
+            c = f.read()
+        
+        # Replace the TabRow block with a simple one
+        import re
+        c = re.sub(
+            r'TabRow\([^)]*\)\s*\{',
+            'TabRow(selectedTabIndex = selectedTab) {',
+            c
+        )
+        
+        with open("MainActivity.kt", "w") as f:
+            f.write(c)
+        print("MainActivity TabRow fixed")
+        PYFIX
+
+        # Fix 3: Fix RevisionScreen - remove broken time Row, add simple fields
+        python3 << 'PYFIX2'
+        with open("ui/screens/RevisionScreen.kt") as f:
+            lines = f.readlines()
+        
+        # Find the broken "// Time row" section and fix it
+        new_lines = []
+        skip = False
+        for i, line in enumerate(lines):
+            if '// Time row' in line:
+                skip = True
+                # Add fixed time fields
+                new_lines.append('                OutlinedTextField(\n')
+                new_lines.append('                    value = startTime,\n')
+                new_lines.append('                    onValueChange = { startTime = it },\n')
+                new_lines.append('                    label = { Text("Start Time (HH:MM)") },\n')
+                new_lines.append('                    placeholder = { Text("09:00") },\n')
+                new_lines.append('                    modifier = Modifier.fillMaxWidth(),\n')
+                new_lines.append('                    shape = RoundedCornerShape(10.dp),\n')
+                new_lines.append('                    singleLine = true\n')
+                new_lines.append('                )\n\n')
+                new_lines.append('                OutlinedTextField(\n')
+                new_lines.append('                    value = endTime,\n')
+                new_lines.append('                    onValueChange = { endTime = it },\n')
+                new_lines.append('                    label = { Text("End Time (HH:MM)") },\n')
+                new_lines.append('                    placeholder = { Text("10:00") },\n')
+                new_lines.append('                    modifier = Modifier.fillMaxWidth(),\n')
+                new_lines.append('                    shape = RoundedCornerShape(10.dp),\n')
+                new_lines.append('                    singleLine = true\n')
+                new_lines.append('                )\n\n')
+                continue
+            
+            if skip:
+                # Skip until we find "OutlinedTextField(" which is the notes field
+                if 'OutlinedTextField(' in line and 'startTime' not in line and 'endTime' not in line:
+                    skip = False
+                    new_lines.append(line)
+                continue
+            
+            new_lines.append(line)
+        
+        with open("ui/screens/RevisionScreen.kt", "w") as f:
+            f.writelines(new_lines)
+        print("RevisionScreen fixed")
+        PYFIX2
+
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -25,9 +112,27 @@ jobs:
         gradle-version: '8.5'
 
     - name: Build Debug APK
-      run: gradle assembleDebug
+      run: |
+        gradle assembleDebug 2>&1 | tee build_output.txt || true
+        echo ""
+        echo "========== KOTLIN ERRORS =========="
+        grep "^e:" build_output.txt || echo "No errors"
+        echo "========== END =========="
+        if grep -q "BUILD SUCCESSFUL" build_output.txt; then
+          echo "BUILD PASSED"
+        else
+          exit 1
+        fi
+
+    - name: Upload error log
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-errors
+        path: build_output.txt
 
     - name: Upload APK
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: CMAStudyPlanner-APK
