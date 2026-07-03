@@ -15,6 +15,19 @@ class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val title = intent.getStringExtra("title") ?: "Study Reminder"
         val body = intent.getStringExtra("body") ?: "Time to study!"
+        val isMorning = intent.getBooleanExtra("is_morning", false)
+
+        if (isMorning) {
+            // Full-screen morning countdown
+            val morningIntent = Intent(context, com.cma.studyplanner.service.MorningAlarmActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                putExtra("exam_name", intent.getStringExtra("subject") ?: "")
+                putExtra("exam_date", intent.getStringExtra("exam_date") ?: "")
+            }
+            context.startActivity(morningIntent)
+            return
+        }
+
         val isAlarm = intent.getBooleanExtra("is_alarm", false)
         val subject = intent.getStringExtra("subject") ?: ""
         val chapter = intent.getStringExtra("chapter") ?: ""

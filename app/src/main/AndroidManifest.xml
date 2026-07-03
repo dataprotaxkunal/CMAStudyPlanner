@@ -77,6 +77,26 @@
             android:taskAffinity="com.cma.studyplanner.alarm"
             android:launchMode="singleInstance" />
 
+        <activity
+            android:name=".service.MorningAlarmActivity"
+            android:exported="false"
+            android:theme="@style/Theme.CMAStudyPlanner"
+            android:excludeFromRecents="true"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true"
+            android:taskAffinity="com.cma.studyplanner.morning"
+            android:launchMode="singleInstance" />
+
+        <activity
+            android:name=".service.MorningAlarmActivity"
+            android:exported="false"
+            android:theme="@style/Theme.CMAStudyPlanner"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity="com.cma.studyplanner.morning"
+            android:launchMode="singleInstance" />
+
         <service
             android:name=".service.FocusService"
             android:foregroundServiceType="specialUse"
@@ -84,6 +104,10 @@
 
         <receiver
             android:name=".receiver.ReminderReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".receiver.MorningReceiver"
             android:exported="false" />
 
         <receiver

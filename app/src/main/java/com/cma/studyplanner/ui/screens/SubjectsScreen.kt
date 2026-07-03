@@ -146,23 +146,43 @@ fun SubjectsScreen(vm: MainViewModel) {
                                     fontSize = 13.sp
                                 )
                             } else {
-                                swc.chapters.forEach { chapter ->
+                                swc.chapters.forEachIndexed { index, chapter ->
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                                            .padding(horizontal = 16.dp, vertical = 5.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
+                                        // Chapter number badge
+                                        Box(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(
+                                                    if (chapter.done) color
+                                                    else color.copy(alpha = 0.12f)
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                "${index + 1}",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (chapter.done) Color.White else color
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(8.dp))
                                         CheckButton(
                                             checked = chapter.done,
                                             onToggle = { vm.toggleChapter(chapter) }
                                         )
-                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
                                         Text(
                                             chapter.name,
                                             modifier = Modifier.weight(1f),
-                                            fontSize = 14.sp,
-                                            color = if (chapter.done) Muted else TextDark
+                                            fontSize = 13.sp,
+                                            color = if (chapter.done) Muted else TextDark,
+                                            textDecoration = if (chapter.done) androidx.compose.ui.text.style.TextDecoration.LineThrough else androidx.compose.ui.text.style.TextDecoration.None
                                         )
                                         IconButton(
                                             onClick = { vm.deleteChapter(chapter.id) },
@@ -217,7 +237,7 @@ fun SubjectsScreen(vm: MainViewModel) {
     // Add Subject Dialog
     if (showAddSubject) {
         AddSubjectDialog(
-            availableSubjects = vm.cmaSubjects.filter { name ->
+            availableSubjects = vm.suggestedSubjects.filter { name ->
                 subjects.none { it.subject.name == name }
             },
             onConfirm = { name ->

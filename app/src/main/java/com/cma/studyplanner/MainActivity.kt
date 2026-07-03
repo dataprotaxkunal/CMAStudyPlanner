@@ -11,7 +11,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -34,61 +33,68 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-
-    private val notifPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { }
-
-    private val calendarPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { }
+    private val notifLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    private val calLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {}
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED
-            ) {
-                notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
-
-        // Request calendar permissions
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_CALENDAR)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            calendarPermissionLauncher.launch(
-                arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR)
-            )
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_CALENDAR) != PackageManager.PERMISSION_GRANTED) {
+            calLauncher.launch(arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR))
         }
 
         setContent {
             CMATheme {
                 val vm: MainViewModel = viewModel()
-
                 LaunchedEffect(Unit) {
                     vm.toastMessage.collectLatest { msg ->
                         Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show()
                     }
                 }
 
-                MainApp(vm)
+                var isOnboarded by remember { mutableStateOf(vm.isOnboarded()) }
+
+                if (!isOnboarded) {
+                    OnboardingScreen(
+                        onComplete = { name, dob, email, exam, examDate ->
+                            vm.saveProfile(name, dob, email, exam, examDate)
+                            isOnboarded = true
+                        }
+                    )
+                } else {
+                    MainAppWithOnboarding(vm)
+                }
             }
         }
     }
 }
 
-data class NavItem(
-    val label: String,
-    val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector
-)
+data class NavItem(val label: String, val selectedIcon: ImageVector, val unselectedIcon: ImageVector)
+
+@Composable
+fun MainAppWithOnboarding(vm: MainViewModel) {
+    var onboarded by remember { mutableStateOf(vm.isOnboarded()) }
+    
+    if (!onboarded) {
+        OnboardingScreen(
+            onComplete = { name, dob, email, exam, examDate ->
+                vm.saveProfile(name, dob, email, exam, examDate)
+                onboarded = true
+            }
+        )
+    } else {
+        MainApp(vm)
+    }
+}
 
 @Composable
 fun MainApp(vm: MainViewModel) {
     var showFocus by remember { mutableStateOf(false) }
-
     val navItems = listOf(
         NavItem("Home", Icons.Filled.Home, Icons.Outlined.Home),
         NavItem("Subjects", Icons.Filled.MenuBook, Icons.Outlined.MenuBook),
@@ -98,89 +104,40 @@ fun MainApp(vm: MainViewModel) {
         NavItem("Settings", Icons.Filled.Settings, Icons.Outlined.Settings),
     )
 
-    // Focus mode is separate full-screen
-    if (showFocus) {
-        FocusScreen(vm = vm, onClose = { showFocus = false })
-        return
-    }
+    if (showFocus) { FocusScreen(vm = vm, onClose = { showFocus = false }); return }
 
-    // Pager state for swipe navigation
     val pagerState = rememberPagerState(pageCount = { navItems.size })
     val scope = rememberCoroutineScope()
 
     Scaffold(
         bottomBar = {
-            NavigationBar(
-                tonalElevation = 2.dp,
-                containerColor = MaterialTheme.colorScheme.surface
-            ) {
+            NavigationBar(tonalElevation = 2.dp, containerColor = MaterialTheme.colorScheme.surface) {
                 navItems.take(3).forEachIndexed { index, item ->
                     NavigationBarItem(
                         selected = pagerState.currentPage == index,
-                        onClick = {
-                            scope.launch { pagerState.animateScrollToPage(index) }
-                        },
-                        icon = {
-                            Icon(
-                                if (pagerState.currentPage == index) item.selectedIcon else item.unselectedIcon,
-                                contentDescription = item.label,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        },
-                        label = {
-                            Text(item.label, fontSize = 10.sp, fontWeight = FontWeight.Medium)
-                        },
-                        alwaysShowLabel = true
+                        onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                        icon = { Icon(if (pagerState.currentPage == index) item.selectedIcon else item.unselectedIcon, contentDescription = item.label, modifier = Modifier.size(22.dp)) },
+                        label = { Text(item.label, fontSize = 10.sp, fontWeight = FontWeight.Medium) }
                     )
                 }
-                // Focus button (center)
                 NavigationBarItem(
-                    selected = false,
-                    onClick = { showFocus = true },
-                    icon = {
-                        Icon(
-                            Icons.Filled.FitnessCenter,
-                            contentDescription = "Focus",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    },
-                    label = {
-                        Text(
-                            "Focus", fontSize = 10.sp, fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    selected = false, onClick = { showFocus = true },
+                    icon = { Icon(Icons.Filled.FitnessCenter, contentDescription = "Focus", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp)) },
+                    label = { Text("Focus", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) }
                 )
                 navItems.drop(3).forEachIndexed { index, item ->
                     val actualIndex = index + 3
                     NavigationBarItem(
                         selected = pagerState.currentPage == actualIndex,
-                        onClick = {
-                            scope.launch { pagerState.animateScrollToPage(actualIndex) }
-                        },
-                        icon = {
-                            Icon(
-                                if (pagerState.currentPage == actualIndex) item.selectedIcon else item.unselectedIcon,
-                                contentDescription = item.label,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        },
-                        label = {
-                            Text(item.label, fontSize = 10.sp, fontWeight = FontWeight.Medium)
-                        },
-                        alwaysShowLabel = true
+                        onClick = { scope.launch { pagerState.animateScrollToPage(actualIndex) } },
+                        icon = { Icon(if (pagerState.currentPage == actualIndex) item.selectedIcon else item.unselectedIcon, contentDescription = item.label, modifier = Modifier.size(22.dp)) },
+                        label = { Text(item.label, fontSize = 10.sp, fontWeight = FontWeight.Medium) }
                     )
                 }
             }
         }
     ) { padding ->
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) { page ->
+        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize().padding(padding)) { page ->
             when (page) {
                 0 -> DashboardScreen(vm)
                 1 -> SubjectsScreen(vm)

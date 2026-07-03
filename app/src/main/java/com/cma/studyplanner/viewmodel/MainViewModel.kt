@@ -21,18 +21,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = app.prefs
 
     // CMA preset subjects
-    val cmaSubjects = listOf(
-        "Financial Planning & Analysis",
-        "Strategic Financial Mgmt",
-        "Cost Management",
-        "Internal Controls",
-        "Financial Statement Analysis",
-        "Corporate Finance",
-        "Decision Analysis",
-        "Risk Management",
-        "Investment Decisions",
-        "Professional Ethics"
-    )
+    val suggestedSubjects: List<String>
+        get() {
+            val exam = prefs.examName
+            return when {
+                exam.contains("CMA", true) -> listOf("Financial Planning", "Strategic Financial Mgmt", "Cost Management", "Internal Controls", "Financial Statement Analysis", "Corporate Finance", "Decision Analysis", "Risk Management", "Investment Decisions", "Professional Ethics")
+                exam.contains("CA", true) -> listOf("Accounting", "Auditing", "Taxation", "Corporate Law", "Cost & Mgmt Accounting", "Financial Management", "Strategic Management")
+                exam.contains("UPSC", true) -> listOf("History", "Geography", "Polity", "Economy", "Science", "Current Affairs", "Ethics", "Essay")
+                exam.contains("NEET", true) || exam.contains("Medical", true) -> listOf("Physics", "Chemistry", "Biology", "Zoology", "Botany")
+                exam.contains("JEE", true) || exam.contains("GATE", true) -> listOf("Physics", "Chemistry", "Mathematics")
+                exam.contains("CAT", true) || exam.contains("GMAT", true) -> listOf("Quantitative Aptitude", "Verbal Ability", "Data Interpretation", "Logical Reasoning")
+                else -> listOf("Subject 1", "Subject 2", "Subject 3")
+            }
+        }
 
     val colors = listOf(
         0xFF6366F1, 0xFFF59E0B, 0xFF10B981, 0xFFEF4444, 0xFF8B5CF6,
@@ -99,6 +100,103 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val dndEnabled: Boolean get() = prefs.dndEnabled
     val appBlockingEnabled: Boolean get() = prefs.appBlockingEnabled
     val calendarSyncEnabled: Boolean get() = prefs.calendarSyncEnabled
+
+    // Profile
+    fun getUserName(): String = prefs.userName
+    fun getExamName(): String = prefs.examName
+    fun getExamDate(): String = prefs.examDate
+    fun isOnboarded(): Boolean = prefs.onboarded
+
+    fun saveProfile(name: String, dob: String, email: String, exam: String, examDate: String) {
+        prefs.userName = name
+        prefs.userDob = dob
+        prefs.userEmail = email
+        prefs.examName = exam
+        prefs.examDate = examDate
+        prefs.onboarded = true
+        scheduleMorningAlarm()
+    }
+
+    fun scheduleMorningAlarm() {
+        try {
+            val context = getApplication<android.app.Application>()
+            val alarmManager = context.getSystemService(android.content.Context.ALARM_SERVICE) as android.app.AlarmManager
+            val intent = android.content.Intent(context, com.cma.studyplanner.receiver.ReminderReceiver::class.java).apply {
+                putExtra("is_morning", true)
+                putExtra("title", "Good Morning! \uD83C\uDF1E")
+                putExtra("body", "${prefs.examName} in ${getDaysLeft()} days!")
+                putExtra("subject", prefs.examName)
+                putExtra("exam_date", prefs.examDate)
+            }
+            val pending = android.app.PendingIntent.getBroadcast(
+                context, 9999, intent,
+                android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            // Set for 7 AM every day
+            val cal = java.util.Calendar.getInstance().apply {
+                set(java.util.Calendar.HOUR_OF_DAY, 7)
+                set(java.util.Calendar.MINUTE, 0)
+                set(java.util.Calendar.SECOND, 0)
+                if (timeInMillis <= System.currentTimeMillis()) {
+                    add(java.util.Calendar.DAY_OF_MONTH, 1)
+                }
+            }
+            alarmManager.setRepeating(
+                android.app.AlarmManager.RTC_WAKEUP,
+                cal.timeInMillis,
+                android.app.AlarmManager.INTERVAL_DAY,
+                pending
+            )
+        } catch (e: Exception) { e.printStackTrace() }
+    }
+
+    private fun getDaysLeft(): Int {
+        return try {
+            val ed = java.time.LocalDate.parse(prefs.examDate)
+            java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), ed).toInt().coerceAtLeast(0)
+        } catch (e: Exception) { 0 }
+    }
+
+
+    // ─── Profile ───
+    fun getUserName(): String = prefs.userName
+    fun getExamName(): String = prefs.examName
+    fun getExamDate(): String = prefs.examDate
+    fun isOnboarded(): Boolean = prefs.isOnboarded
+
+    fun saveProfile(name: String, dob: String, email: String, exam: String, examDate: String) {
+        prefs.userName = name
+        prefs.userDob = dob
+        prefs.userEmail = email
+        prefs.examName = exam
+        prefs.examDate = examDate
+        prefs.isOnboarded = true
+        scheduleMorningAlarm()
+    }
+
+    fun scheduleMorningAlarm() {
+        try {
+            val context = getApplication<android.app.Application>()
+            val am = context.getSystemService(android.content.Context.ALARM_SERVICE) as android.app.AlarmManager
+            val intent = android.content.Intent(context, com.cma.studyplanner.receiver.MorningReceiver::class.java)
+            val pending = android.app.PendingIntent.getBroadcast(
+                context, 9999, intent,
+                android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            val cal = java.util.Calendar.getInstance().apply {
+                set(java.util.Calendar.HOUR_OF_DAY, prefs.morningAlarmHour)
+                set(java.util.Calendar.MINUTE, 0)
+                set(java.util.Calendar.SECOND, 0)
+                if (before(java.util.Calendar.getInstance())) add(java.util.Calendar.DAY_OF_MONTH, 1)
+            }
+            am.setRepeating(
+                android.app.AlarmManager.RTC_WAKEUP,
+                cal.timeInMillis,
+                android.app.AlarmManager.INTERVAL_DAY,
+                pending
+            )
+        } catch (e: Exception) { e.printStackTrace() }
+    }
 
     // ─── Stats ───
     fun getTotalChapters(): Int = subjectsWithChapters.value.sumOf { it.chapters.size }
