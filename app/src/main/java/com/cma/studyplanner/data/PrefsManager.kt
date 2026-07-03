@@ -55,6 +55,16 @@ class PrefsManager(context: Context) {
         get() = prefs.getString("exam_date", "") ?: ""
         set(value) = prefs.edit().putString("exam_date", value).apply()
 
+    // Weekly study plan (hours per day, stored as float * 10 to use Int)
+    fun getDayHours(day: Int): Float = prefs.getFloat("day_hours_$day", if (day < 5) 2f else 0.5f)
+    fun setDayHours(day: Int, hours: Float) = prefs.edit().putFloat("day_hours_$day", hours).apply()
+
+    fun getWeeklyPlannedHours(): Float = (0..6).sumOf { getDayHours(it).toDouble() }.toFloat()
+
+    var weeklyDeficitCarryOver: Float
+        get() = prefs.getFloat("weekly_deficit", 0f)
+        set(value) = prefs.edit().putFloat("weekly_deficit", value).apply()
+
     val whitelistedPackages: Set<String>
         get() = setOf(
             "com.android.dialer", "com.google.android.dialer", "com.samsung.android.dialer",

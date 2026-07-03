@@ -186,6 +186,55 @@ fun SettingsScreen(vm: MainViewModel) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // ── Weekly Study Plan ──
+        SectionLabel("📅 Weekly Study Plan (hours per day)")
+
+        Card(
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(1.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                val dayNames = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+                dayNames.forEachIndexed { index, dayName ->
+                    var hrs by remember { mutableStateOf(vm.getDayHours(index).toString()) }
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(dayName, fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                        OutlinedTextField(
+                            value = hrs,
+                            onValueChange = {
+                                hrs = it
+                                it.toFloatOrNull()?.let { f -> vm.setDayHours(index, f) }
+                            },
+                            modifier = Modifier.width(70.dp).height(44.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            singleLine = true,
+                            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+                            suffix = { Text("h", fontSize = 10.sp, color = Muted) }
+                        )
+                    }
+                }
+                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Border)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Total per week", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "${String.format("%.1f", vm.getWeeklyPlannedHours())} hrs",
+                        fontSize = 14.sp, fontWeight = FontWeight.Black, color = Indigo
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         // ── Google Calendar ──
         SectionLabel("📅 Google Calendar Sync")
 

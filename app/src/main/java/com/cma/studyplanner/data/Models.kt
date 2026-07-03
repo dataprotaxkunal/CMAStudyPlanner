@@ -48,6 +48,8 @@ data class Revision(
     val chapterId: String,
     val chapterName: String,
     val date: String,        // YYYY-MM-DD
+    val startTime: String = "09:00",
+    val endTime: String = "10:00",
     val notes: String = "",
     val completed: Boolean = false
 )

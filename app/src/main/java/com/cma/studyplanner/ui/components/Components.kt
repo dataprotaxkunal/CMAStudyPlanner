@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -158,7 +159,8 @@ fun ScheduleItem(
     color: Color,
     lightColor: Color,
     onToggle: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEdit: (() -> Unit)? = null
 ) {
     Card(
         shape = RoundedCornerShape(12.dp),
@@ -182,9 +184,16 @@ fun ScheduleItem(
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(subject, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Text(subject, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
+                    textDecoration = if (completed) androidx.compose.ui.text.style.TextDecoration.LineThrough else androidx.compose.ui.text.style.TextDecoration.None,
+                    color = if (completed) Color(0xFF8B8FA3) else Color.Unspecified)
                 Text(chapter, fontSize = 12.sp, color = Color(0xFF8B8FA3))
                 Text(time, fontSize = 11.sp, color = color, fontWeight = FontWeight.Medium)
+            }
+            if (onEdit != null) {
+                IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color(0xFF8B8FA3), modifier = Modifier.size(16.dp))
+                }
             }
             IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFF8B8FA3), modifier = Modifier.size(16.dp))

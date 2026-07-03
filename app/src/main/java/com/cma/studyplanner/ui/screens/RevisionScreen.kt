@@ -123,8 +123,8 @@ fun RevisionScreen(vm: MainViewModel) {
     if (showAddDialog) {
         AddRevisionDialog(
             subjects = subjects,
-            onConfirm = { subjectId, chapterId, date, notes ->
-                vm.addRevision(subjectId, chapterId, date, notes)
+            onConfirm = { subjectId, chapterId, date, startTime, endTime, notes ->
+                vm.addRevision(subjectId, chapterId, date, startTime, endTime, notes)
                 showAddDialog = false
             },
             onDismiss = { showAddDialog = false }
@@ -186,12 +186,14 @@ fun RevisionItem(
 @Composable
 fun AddRevisionDialog(
     subjects: List<com.cma.studyplanner.data.SubjectWithChapters>,
-    onConfirm: (String, String, String, String) -> Unit,
+    onConfirm: (String, String, String, String, String, String) -> Unit,
     onDismiss: () -> Unit
 ) {
     var selectedSubjectId by remember { mutableStateOf("") }
     var selectedChapterId by remember { mutableStateOf("") }
     var date by remember { mutableStateOf(LocalDate.now().toString()) }
+    var startTime by remember { mutableStateOf("09:00") }
+    var endTime by remember { mutableStateOf("10:00") }
     var notes by remember { mutableStateOf("") }
     var subjExpanded by remember { mutableStateOf(false) }
     var chapExpanded by remember { mutableStateOf(false) }
@@ -272,9 +274,27 @@ fun AddRevisionDialog(
                     singleLine = true
                 )
 
+                // Time row
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = startTime,
+                        onValueChange = { startTime = it },
+                        label = { Text("Start") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = endTime,
+                        onValueChange = { endTime = it },
+                        label = { Text("End") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        singleLine = true
+                    )
+                }
+
                 OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
                     label = { Text("Notes (optional)") },
                     placeholder = { Text("e.g. Focus on formulas") },
                     modifier = Modifier.fillMaxWidth(),
@@ -287,7 +307,7 @@ fun AddRevisionDialog(
             Button(
                 onClick = {
                     if (selectedSubjectId.isNotBlank() && selectedChapterId.isNotBlank()) {
-                        onConfirm(selectedSubjectId, selectedChapterId, date, notes)
+                        onConfirm(selectedSubjectId, selectedChapterId, date, startTime, endTime, notes)
                     }
                 }
             ) { Text("Add Revision") }

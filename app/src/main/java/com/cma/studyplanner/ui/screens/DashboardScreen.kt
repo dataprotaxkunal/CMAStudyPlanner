@@ -182,6 +182,66 @@ fun DashboardScreen(vm: MainViewModel) {
         Spacer(modifier = Modifier.height(14.dp))
 
         // Subject progress
+        // Weekly Study Tracking
+        Text("Weekly Study Plan", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        val weeklyPlanned = vm.getWeeklyPlannedHours()
+        val weeklyActual = vm.getThisWeekActualHours()
+        val deficit = vm.getWeeklyDeficit()
+        val nextWeekTarget = vm.getNextWeekTarget()
+        val examTotalHours = vm.getExamTotalHours()
+
+        Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                // This week progress
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("This Week", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "${String.format("%.1f", weeklyActual)} / ${String.format("%.1f", weeklyPlanned)} hrs",
+                        fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                        color = if (weeklyActual >= weeklyPlanned) Green else Amber
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                LinearProgressIndicator(
+                    progress = if (weeklyPlanned > 0) (weeklyActual / weeklyPlanned).coerceIn(0f, 1f) else 0f,
+                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                    color = if (weeklyActual >= weeklyPlanned) Green else Amber,
+                    trackColor = Border
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Stats row
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            if (deficit > 0) "-${String.format("%.1f", deficit)}" else "0",
+                            fontSize = 14.sp, fontWeight = FontWeight.Black,
+                            color = if (deficit > 0) Red else Green
+                        )
+                        Text("deficit", fontSize = 9.sp, color = Muted)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            String.format("%.1f", nextWeekTarget),
+                            fontSize = 14.sp, fontWeight = FontWeight.Black, color = Indigo
+                        )
+                        Text("next week", fontSize = 9.sp, color = Muted)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            String.format("%.0f", examTotalHours),
+                            fontSize = 14.sp, fontWeight = FontWeight.Black, color = Amber
+                        )
+                        Text("total hrs", fontSize = 9.sp, color = Muted)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
         Text("Subject Progress", fontSize = 14.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
         subjects.forEach { swc ->

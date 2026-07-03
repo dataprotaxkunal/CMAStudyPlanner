@@ -360,7 +360,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // ─── Revisions ───
-    fun addRevision(subjectId: String, chapterId: String, date: String, notes: String) {
+    fun addRevision(subjectId: String, chapterId: String, date: String, startTime: String, endTime: String, notes: String) {
         viewModelScope.launch {
             val swc = db.subjectDao().getAllWithChaptersOnce()
             val subj = swc.find { it.subject.id == subjectId }
@@ -373,11 +373,69 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 Revision(
                     subjectId = subjectId, subjectName = subj.subject.name,
                     chapterId = chapterId, chapterName = chap.name,
-                    date = date, notes = notes
+                    date = date, startTime = startTime, endTime = endTime, notes = notes
                 )
             )
             _toastMessage.emit("✅ Revision added")
         }
+    }
+
+    // ─── Edit Schedule ───
+    fun editSchedule(id: String, subject: String, chapter: String, date: String, startTime: String, endTime: String) {
+        viewModelScope.launch {
+            val existing = db.scheduleDao().getAllOnce().find { it.id == id } ?: return@launch
+            db.scheduleDao().update(existing.copy(
+                subject = subject, chapter = chapter, date = date,
+                startTime = startTime, endTime = endTime
+            ))
+            _toastMessage.emit("✅ Schedule updated")
+        }
+    }
+
+    // ─── Edit Revision ───
+    fun editRevision(id: String, date: String, startTime: String, endTime: String, notes: String) {
+        viewModelScope.launch {
+            val existing = db.revisionDao().getAllOnce().find { it.id == id } ?: return@launch
+            db.revisionDao().update(existing.copy(
+                date = date, startTime = startTime, endTime = endTime, notes = notes
+            ))
+            _toastMessage.emit("✅ Revision updated")
+        }
+    }
+
+    // ─── Weekly Study Plan ───
+    fun getDayHours(day: Int): Float = prefs.getDayHours(day)
+    fun setDayHours(day: Int, hours: Float) = prefs.setDayHours(day, hours)
+    fun getWeeklyPlannedHours(): Float = prefs.getWeeklyPlannedHours()
+
+    fun getThisWeekActualHours(): Float {
+        val now = java.time.LocalDate.now()
+        val weekStart = now.minusDays(now.dayOfWeek.value.toLong() % 7)
+        val weekEnd = weekStart.plusDays(6)
+        return schedules.value
+            .filter { it.completed && it.date >= weekStart.toString() && it.date <= weekEnd.toString() }
+            .sumOf { timeDiffMinutes(it.startTime, it.endTime).coerceAtLeast(0) } / 60f
+    }
+
+    fun getWeeklyDeficit(): Float {
+        val planned = getWeeklyPlannedHours() + prefs.weeklyDeficitCarryOver
+        val actual = getThisWeekActualHours()
+        return (planned - actual).coerceAtLeast(0f)
+    }
+
+    fun getNextWeekTarget(): Float {
+        return getWeeklyPlannedHours() + getWeeklyDeficit()
+    }
+
+    fun getExamTotalHours(): Float {
+        val daysLeft = try {
+            java.time.temporal.ChronoUnit.DAYS.between(
+                java.time.LocalDate.now(),
+                java.time.LocalDate.parse(prefs.examDate)
+            ).toInt().coerceAtLeast(0)
+        } catch (e: Exception) { 0 }
+        val weeksLeft = daysLeft / 7f
+        return weeksLeft * getWeeklyPlannedHours()
     }
 
     fun toggleRevisionComplete(revision: Revision) {
