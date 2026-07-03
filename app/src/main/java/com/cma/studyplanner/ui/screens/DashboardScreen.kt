@@ -101,13 +101,12 @@ fun DashboardScreen(vm: MainViewModel) {
                     Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("\uD83C\uDFAF $examName", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                        try {
-                            val ed = LocalDate.parse(examDate)
-                            Text(
-                                ed.format(java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMM yyyy")),
-                                fontSize = 11.sp, color = Muted
-                            )
-                        } catch (_: Exception) {}
+                        val examDateFormatted = remember(examDate) {
+                            try {
+                                LocalDate.parse(examDate).format(java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMM yyyy"))
+                            } catch (_: Exception) { examDate }
+                        }
+                        Text(examDateFormatted, fontSize = 11.sp, color = Muted)
                         Spacer(modifier = Modifier.height(6.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Column {

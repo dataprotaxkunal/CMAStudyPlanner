@@ -5,34 +5,8 @@ import android.content.SharedPreferences
 
 class PrefsManager(context: Context) {
     private val prefs: SharedPreferences =
-        context.getSharedPreferences("study_planner_prefs", Context.MODE_PRIVATE)
+        context.getSharedPreferences("cma_prefs", Context.MODE_PRIVATE)
 
-    // Profile
-    var isOnboarded: Boolean
-        get() = prefs.getBoolean("onboarded", false)
-        set(value) = prefs.edit().putBoolean("onboarded", value).apply()
-
-    var userName: String
-        get() = prefs.getString("user_name", "") ?: ""
-        set(value) = prefs.edit().putString("user_name", value).apply()
-
-    var userDob: String
-        get() = prefs.getString("user_dob", "") ?: ""
-        set(value) = prefs.edit().putString("user_dob", value).apply()
-
-    var userEmail: String
-        get() = prefs.getString("user_email", "") ?: ""
-        set(value) = prefs.edit().putString("user_email", value).apply()
-
-    var examName: String
-        get() = prefs.getString("exam_name", "") ?: ""
-        set(value) = prefs.edit().putString("exam_name", value).apply()
-
-    var examDate: String
-        get() = prefs.getString("exam_date", "") ?: ""
-        set(value) = prefs.edit().putString("exam_date", value).apply()
-
-    // Settings
     var whatsappNumber: String
         get() = prefs.getString("whatsapp", "") ?: ""
         set(value) = prefs.edit().putString("whatsapp", value).apply()
@@ -57,7 +31,6 @@ class PrefsManager(context: Context) {
         get() = prefs.getBoolean("calendar_sync", true)
         set(value) = prefs.edit().putBoolean("calendar_sync", value).apply()
 
-    // Profile
     var onboarded: Boolean
         get() = prefs.getBoolean("onboarded", false)
         set(value) = prefs.edit().putBoolean("onboarded", value).apply()
@@ -82,16 +55,12 @@ class PrefsManager(context: Context) {
         get() = prefs.getString("exam_date", "") ?: ""
         set(value) = prefs.edit().putString("exam_date", value).apply()
 
-    var morningAlarmHour: Int
-        get() = prefs.getInt("morning_hour", 7)
-        set(value) = prefs.edit().putInt("morning_hour", value).apply()
-
     val whitelistedPackages: Set<String>
         get() = setOf(
-            "com.android.dialer","com.google.android.dialer","com.samsung.android.dialer",
-            "com.android.messaging","com.google.android.apps.messaging","com.samsung.android.messaging",
-            "com.android.settings","com.cma.studyplanner","com.android.systemui",
-            "com.android.launcher","com.android.launcher3",
-            "com.google.android.apps.nexuslauncher","com.sec.android.app.launcher"
+            "com.android.dialer", "com.google.android.dialer", "com.samsung.android.dialer",
+            "com.android.messaging", "com.google.android.apps.messaging", "com.samsung.android.messaging",
+            "com.android.settings", "com.cma.studyplanner", "com.android.systemui",
+            "com.android.launcher", "com.android.launcher3",
+            "com.google.android.apps.nexuslauncher", "com.sec.android.app.launcher"
         )
 }

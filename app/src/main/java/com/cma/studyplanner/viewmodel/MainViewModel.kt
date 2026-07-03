@@ -159,45 +159,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
 
     // ─── Profile ───
-    fun getUserName(): String = prefs.userName
-    fun getExamName(): String = prefs.examName
-    fun getExamDate(): String = prefs.examDate
-    fun isOnboarded(): Boolean = prefs.isOnboarded
-
-    fun saveProfile(name: String, dob: String, email: String, exam: String, examDate: String) {
-        prefs.userName = name
-        prefs.userDob = dob
-        prefs.userEmail = email
-        prefs.examName = exam
-        prefs.examDate = examDate
-        prefs.isOnboarded = true
-        scheduleMorningAlarm()
-    }
-
-    fun scheduleMorningAlarm() {
-        try {
-            val context = getApplication<android.app.Application>()
-            val am = context.getSystemService(android.content.Context.ALARM_SERVICE) as android.app.AlarmManager
-            val intent = android.content.Intent(context, com.cma.studyplanner.receiver.MorningReceiver::class.java)
-            val pending = android.app.PendingIntent.getBroadcast(
-                context, 9999, intent,
-                android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT
-            )
-            val cal = java.util.Calendar.getInstance().apply {
-                set(java.util.Calendar.HOUR_OF_DAY, prefs.morningAlarmHour)
-                set(java.util.Calendar.MINUTE, 0)
-                set(java.util.Calendar.SECOND, 0)
-                if (before(java.util.Calendar.getInstance())) add(java.util.Calendar.DAY_OF_MONTH, 1)
-            }
-            am.setRepeating(
-                android.app.AlarmManager.RTC_WAKEUP,
-                cal.timeInMillis,
-                android.app.AlarmManager.INTERVAL_DAY,
-                pending
-            )
-        } catch (e: Exception) { e.printStackTrace() }
-    }
-
     // ─── Stats ───
     fun getTotalChapters(): Int = subjectsWithChapters.value.sumOf { it.chapters.size }
     fun getDoneChapters(): Int = subjectsWithChapters.value.sumOf { it.chapters.count { c -> c.done } }

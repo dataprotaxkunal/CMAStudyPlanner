@@ -87,15 +87,6 @@
             android:taskAffinity="com.cma.studyplanner.morning"
             android:launchMode="singleInstance" />
 
-        <activity
-            android:name=".service.MorningAlarmActivity"
-            android:exported="false"
-            android:theme="@style/Theme.CMAStudyPlanner"
-            android:showOnLockScreen="true"
-            android:turnScreenOn="true"
-            android:excludeFromRecents="true"
-            android:taskAffinity="com.cma.studyplanner.morning"
-            android:launchMode="singleInstance" />
 
         <service
             android:name=".service.FocusService"
