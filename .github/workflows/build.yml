@@ -10,6 +10,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+
+    - name: Setup signing key
+      run: |
+        echo "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" | base64 -d > app/debug.keystore
+        cat > app/signing.gradle << 'SIGN'
+        android.signingConfigs {
+            debug {
+                storeFile file("debug.keystore")
+                storePassword "studyplanner123"
+                keyAlias "debugkey"
+                keyPassword "studyplanner123"
+            }
+        }
+        android.buildTypes.debug.signingConfig = android.signingConfigs.debug
+        SIGN
+        echo 'apply from: "signing.gradle"' >> app/build.gradle.kts
+
     - uses: actions/setup-java@v4
       with:
         java-version: '17'
@@ -19,9 +36,8 @@ jobs:
         gradle-version: '8.5'
     - name: Build
       run: gradle assembleDebug
-    - name: Upload APK
+    - uses: actions/upload-artifact@v4
       if: success()
-      uses: actions/upload-artifact@v4
       with:
         name: CMAStudyPlanner-APK
         path: app/build/outputs/apk/debug/app-debug.apk

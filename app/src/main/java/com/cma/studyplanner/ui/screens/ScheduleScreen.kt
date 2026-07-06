@@ -21,8 +21,6 @@ import com.cma.studyplanner.ui.components.*
 import com.cma.studyplanner.ui.theme.*
 import com.cma.studyplanner.viewmodel.MainViewModel
 import java.time.LocalDate
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 import java.util.Calendar
 
 @Composable
@@ -30,6 +28,7 @@ fun ScheduleScreen(vm: MainViewModel) {
     val subjects by vm.subjectsWithChapters.collectAsState()
     val schedules by vm.schedules.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
+    var editingSchedule by remember { mutableStateOf<Schedule?>(null) }
     var filterMode by remember { mutableStateOf("all") }
 
     val today = LocalDate.now().toString()
@@ -40,24 +39,14 @@ fun ScheduleScreen(vm: MainViewModel) {
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp)
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column {
                 Text("Schedule", fontSize = 26.sp, fontWeight = FontWeight.Black)
                 Text("Plan your study sessions", color = Muted, fontSize = 14.sp)
             }
-            Button(
-                onClick = { showAddDialog = true },
-                shape = RoundedCornerShape(10.dp)
-            ) {
+            Button(onClick = { editingSchedule = null; showAddDialog = true }, shape = RoundedCornerShape(10.dp)) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(4.dp))
                 Text("Add")
@@ -68,322 +57,187 @@ fun ScheduleScreen(vm: MainViewModel) {
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("all" to "All", "today" to "Today", "upcoming" to "Upcoming").forEach { (key, label) ->
-                FilterChip(
-                    selected = filterMode == key,
-                    onClick = { filterMode = key },
-                    label = { Text(label, fontSize = 13.sp) },
-                    shape = RoundedCornerShape(8.dp)
-                )
+                FilterChip(selected = filterMode == key, onClick = { filterMode = key }, label = { Text(label, fontSize = 13.sp) }, shape = RoundedCornerShape(8.dp))
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         if (filtered.isEmpty()) {
-            EmptyState("📅", "No sessions found", "Create a study session to get started")
+            EmptyState("\uD83D\uDCC5", "No sessions found", "Create a study session to get started")
         } else {
             val grouped = filtered.groupBy { it.date }.toSortedMap()
             grouped.forEach { (date, items) ->
-                Text(
-                    vm.formatDateShort(date),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = if (date == today) Indigo else TextDark,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
+                Text(vm.formatDateShort(date), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = if (date == today) Indigo else TextDark, modifier = Modifier.padding(vertical = 8.dp))
                 items.forEach { sch ->
                     val subjIdx = subjects.indexOfFirst { it.subject.name == sch.subject }
                     val colorIdx = if (subjIdx >= 0) subjects[subjIdx].subject.colorIndex else 0
                     val color = Color(vm.colors[colorIdx % vm.colors.size])
                     val lightColor = Color(vm.lightColors[colorIdx % vm.lightColors.size])
-
                     ScheduleItem(
-                        subject = sch.subject,
-                        chapter = sch.chapter,
+                        subject = sch.subject, chapter = sch.chapter,
                         time = "${vm.formatTime12(sch.startTime)} - ${vm.formatTime12(sch.endTime)}",
-                        completed = sch.completed,
-                        color = color,
-                        lightColor = lightColor,
+                        completed = sch.completed, color = color, lightColor = lightColor,
                         onToggle = { vm.toggleScheduleComplete(sch) },
-                        onDelete = { vm.deleteSchedule(sch.id) }
+                        onDelete = { vm.deleteSchedule(sch.id) },
+                        onEdit = { editingSchedule = sch; showAddDialog = true }
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                 }
             }
         }
-
         Spacer(modifier = Modifier.height(80.dp))
     }
 
+    // Add OR Edit dialog
     if (showAddDialog) {
-        AddScheduleDialog(
+        AddEditScheduleDialog(
             subjects = subjects.map { it.subject.name to it.chapters.map { c -> c.name } },
+            existingSchedule = editingSchedule,
             onConfirm = { subj, ch, date, st, et ->
-                vm.addScheduleWithAlarm(subj, ch, date, st, et)
+                if (editingSchedule != null) {
+                    vm.editSchedule(editingSchedule!!.id, subj, ch, date, st, et)
+                } else {
+                    vm.addScheduleWithAlarm(subj, ch, date, st, et)
+                }
                 showAddDialog = false
+                editingSchedule = null
             },
-            onDismiss = { showAddDialog = false }
+            onDismiss = { showAddDialog = false; editingSchedule = null }
         )
     }
 }
 
 @Composable
-fun AddScheduleDialog(
+fun AddEditScheduleDialog(
     subjects: List<Pair<String, List<String>>>,
+    existingSchedule: Schedule?,
     onConfirm: (String, String, String, String, String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var selectedSubject by remember { mutableStateOf("") }
-    var selectedChapter by remember { mutableStateOf("") }
+    val isEdit = existingSchedule != null
+
+    var selectedSubject by remember { mutableStateOf(existingSchedule?.subject ?: "") }
+    var selectedChapter by remember { mutableStateOf(existingSchedule?.chapter ?: "") }
     var subjectExpanded by remember { mutableStateOf(false) }
     var chapterExpanded by remember { mutableStateOf(false) }
 
-    // Date picker state
-    var showDatePicker by remember { mutableStateOf(false) }
-    var selectedDateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
+    // Date
+    var selectedDateMillis by remember {
+        mutableStateOf(
+            if (existingSchedule != null) {
+                try {
+                    val parts = existingSchedule.date.split("-").map { it.toInt() }
+                    Calendar.getInstance().apply { set(parts[0], parts[1] - 1, parts[2]) }.timeInMillis
+                } catch (e: Exception) { System.currentTimeMillis() }
+            } else System.currentTimeMillis()
+        )
+    }
     val selectedDate = remember(selectedDateMillis) {
         val cal = Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
         String.format("%04d-%02d-%02d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH))
     }
     val displayDate = remember(selectedDate) {
-        try {
-            LocalDate.parse(selectedDate).format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy"))
-        } catch (e: Exception) { selectedDate }
+        try { LocalDate.parse(selectedDate).format(java.time.format.DateTimeFormatter.ofPattern("EEE, d MMM yyyy")) } catch (e: Exception) { selectedDate }
     }
+    var showDatePicker by remember { mutableStateOf(false) }
 
-    // Time picker states
-    var showStartTimePicker by remember { mutableStateOf(false) }
-    var showEndTimePicker by remember { mutableStateOf(false) }
-    var startHour by remember { mutableIntStateOf(9) }
-    var startMinute by remember { mutableIntStateOf(0) }
-    var endHour by remember { mutableIntStateOf(10) }
-    var endMinute by remember { mutableIntStateOf(0) }
+    // Times - parse from existing or default
+    var startHour by remember { mutableStateOf(existingSchedule?.startTime?.substringBefore(":")?.toIntOrNull() ?: 9) }
+    var startMinute by remember { mutableStateOf(existingSchedule?.startTime?.substringAfter(":")?.toIntOrNull() ?: 0) }
+    var endHour by remember { mutableStateOf(existingSchedule?.endTime?.substringBefore(":")?.toIntOrNull() ?: 10) }
+    var endMinute by remember { mutableStateOf(existingSchedule?.endTime?.substringAfter(":")?.toIntOrNull() ?: 0) }
+    var showStartTime by remember { mutableStateOf(false) }
+    var showEndTime by remember { mutableStateOf(false) }
 
     val startTimeStr = String.format("%02d:%02d", startHour, startMinute)
     val endTimeStr = String.format("%02d:%02d", endHour, endMinute)
-    val startDisplay = formatTime12h(startHour, startMinute)
-    val endDisplay = formatTime12h(endHour, endMinute)
+    val startDisplay = formatAmPm(startHour, startMinute)
+    val endDisplay = formatAmPm(endHour, endMinute)
 
     val chapters = subjects.find { it.first == selectedSubject }?.second ?: emptyList()
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Schedule Session", fontWeight = FontWeight.Bold) },
+        title = { Text(if (isEdit) "Edit Schedule" else "Schedule Session", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Subject Dropdown
-                ExposedDropdownMenuBox(
-                    expanded = subjectExpanded,
-                    onExpandedChange = { subjectExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value = selectedSubject,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Subject") },
+                // Subject
+                ExposedDropdownMenuBox(expanded = subjectExpanded, onExpandedChange = { subjectExpanded = it }) {
+                    OutlinedTextField(value = selectedSubject, onValueChange = {}, readOnly = true, label = { Text("Subject") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = subjectExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                    ExposedDropdownMenu(
-                        expanded = subjectExpanded,
-                        onDismissRequest = { subjectExpanded = false }
-                    ) {
-                        subjects.forEach { (name, _) ->
-                            DropdownMenuItem(
-                                text = { Text(name) },
-                                onClick = {
-                                    selectedSubject = name
-                                    selectedChapter = ""
-                                    subjectExpanded = false
-                                }
-                            )
-                        }
+                        modifier = Modifier.menuAnchor().fillMaxWidth(), shape = RoundedCornerShape(10.dp))
+                    ExposedDropdownMenu(expanded = subjectExpanded, onDismissRequest = { subjectExpanded = false }) {
+                        subjects.forEach { (name, _) -> DropdownMenuItem(text = { Text(name) }, onClick = { selectedSubject = name; selectedChapter = ""; subjectExpanded = false }) }
                     }
                 }
-
-                // Chapter Dropdown
-                ExposedDropdownMenuBox(
-                    expanded = chapterExpanded,
-                    onExpandedChange = { chapterExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value = selectedChapter,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Chapter") },
+                // Chapter
+                ExposedDropdownMenuBox(expanded = chapterExpanded, onExpandedChange = { chapterExpanded = it }) {
+                    OutlinedTextField(value = selectedChapter, onValueChange = {}, readOnly = true, label = { Text("Chapter") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = chapterExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                    ExposedDropdownMenu(
-                        expanded = chapterExpanded,
-                        onDismissRequest = { chapterExpanded = false }
-                    ) {
-                        chapters.forEach { ch ->
-                            DropdownMenuItem(
-                                text = { Text(ch) },
-                                onClick = {
-                                    selectedChapter = ch
-                                    chapterExpanded = false
-                                }
-                            )
-                        }
+                        modifier = Modifier.menuAnchor().fillMaxWidth(), shape = RoundedCornerShape(10.dp))
+                    ExposedDropdownMenu(expanded = chapterExpanded, onDismissRequest = { chapterExpanded = false }) {
+                        chapters.forEach { ch -> DropdownMenuItem(text = { Text(ch) }, onClick = { selectedChapter = ch; chapterExpanded = false }) }
                     }
                 }
-
-                // Date Picker Button
-                OutlinedTextField(
-                    value = displayDate,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Date") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    leadingIcon = { Text("📅", fontSize = 16.sp) },
-                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }.also {
-                        LaunchedEffect(it) {
-                            it.interactions.collect { interaction ->
-                                if (interaction is androidx.compose.foundation.interaction.PressInteraction.Release) {
-                                    showDatePicker = true
-                                }
-                            }
-                        }
-                    }
-                )
-
-                // Time Row
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = startDisplay,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Start") },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
-                        leadingIcon = { Text("🕐", fontSize = 14.sp) },
-                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }.also {
-                            LaunchedEffect(it) {
-                                it.interactions.collect { interaction ->
-                                    if (interaction is androidx.compose.foundation.interaction.PressInteraction.Release) {
-                                        showStartTimePicker = true
-                                    }
-                                }
-                            }
-                        }
-                    )
-                    OutlinedTextField(
-                        value = endDisplay,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("End") },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
-                        leadingIcon = { Text("🕐", fontSize = 14.sp) },
-                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }.also {
-                            LaunchedEffect(it) {
-                                it.interactions.collect { interaction ->
-                                    if (interaction is androidx.compose.foundation.interaction.PressInteraction.Release) {
-                                        showEndTimePicker = true
-                                    }
-                                }
-                            }
-                        }
-                    )
-                }
+                // Date
+                OutlinedTextField(value = displayDate, onValueChange = {}, readOnly = true, label = { Text("Date") },
+                    modifier = Modifier.fillMaxWidth().clickableNoRipple { showDatePicker = true },
+                    shape = RoundedCornerShape(10.dp), leadingIcon = { Text("\uD83D\uDCC5", fontSize = 16.sp) })
+                // Start time
+                OutlinedTextField(value = startDisplay, onValueChange = {}, readOnly = true, label = { Text("Start Time") },
+                    modifier = Modifier.fillMaxWidth().clickableNoRipple { showStartTime = true },
+                    shape = RoundedCornerShape(10.dp), leadingIcon = { Text("\uD83D\uDD50", fontSize = 16.sp) })
+                // End time
+                OutlinedTextField(value = endDisplay, onValueChange = {}, readOnly = true, label = { Text("End Time") },
+                    modifier = Modifier.fillMaxWidth().clickableNoRipple { showEndTime = true },
+                    shape = RoundedCornerShape(10.dp), leadingIcon = { Text("\uD83D\uDD50", fontSize = 16.sp) })
             }
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    if (selectedSubject.isNotBlank() && selectedChapter.isNotBlank()) {
-                        onConfirm(selectedSubject, selectedChapter, selectedDate, startTimeStr, endTimeStr)
-                    }
+            Button(onClick = {
+                if (selectedSubject.isNotBlank() && selectedChapter.isNotBlank()) {
+                    onConfirm(selectedSubject, selectedChapter, selectedDate, startTimeStr, endTimeStr)
                 }
-            ) { Text("Schedule") }
+            }) { Text(if (isEdit) "Update" else "Schedule") }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 
-    // Date Picker Dialog
+    // Date Picker
     if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDateMillis)
+        val dps = rememberDatePickerState(initialSelectedDateMillis = selectedDateMillis)
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { selectedDateMillis = it }
-                    showDatePicker = false
-                }) { Text("OK") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+            confirmButton = { TextButton(onClick = { dps.selectedDateMillis?.let { selectedDateMillis = it }; showDatePicker = false }) { Text("OK") } },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Cancel") } }
+        ) { DatePicker(state = dps) }
     }
-
-    // Start Time Picker Dialog
-    if (showStartTimePicker) {
-        TimePickerDialog(
-            initialHour = startHour,
-            initialMinute = startMinute,
-            onConfirm = { h, m -> startHour = h; startMinute = m; showStartTimePicker = false },
-            onDismiss = { showStartTimePicker = false }
-        )
+    // Start Time Picker
+    if (showStartTime) {
+        val tps = rememberTimePickerState(initialHour = startHour, initialMinute = startMinute, is24Hour = false)
+        AlertDialog(onDismissRequest = { showStartTime = false },
+            title = { Text("Start Time", fontWeight = FontWeight.Bold) },
+            text = { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { TimePicker(state = tps) } },
+            confirmButton = { Button(onClick = { startHour = tps.hour; startMinute = tps.minute; showStartTime = false }) { Text("OK") } },
+            dismissButton = { TextButton(onClick = { showStartTime = false }) { Text("Cancel") } })
     }
-
-    // End Time Picker Dialog
-    if (showEndTimePicker) {
-        TimePickerDialog(
-            initialHour = endHour,
-            initialMinute = endMinute,
-            onConfirm = { h, m -> endHour = h; endMinute = m; showEndTimePicker = false },
-            onDismiss = { showEndTimePicker = false }
-        )
+    // End Time Picker
+    if (showEndTime) {
+        val tps = rememberTimePickerState(initialHour = endHour, initialMinute = endMinute, is24Hour = false)
+        AlertDialog(onDismissRequest = { showEndTime = false },
+            title = { Text("End Time", fontWeight = FontWeight.Bold) },
+            text = { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { TimePicker(state = tps) } },
+            confirmButton = { Button(onClick = { endHour = tps.hour; endMinute = tps.minute; showEndTime = false }) { Text("OK") } },
+            dismissButton = { TextButton(onClick = { showEndTime = false }) { Text("Cancel") } })
     }
 }
 
-@Composable
-fun TimePickerDialog(
-    initialHour: Int,
-    initialMinute: Int,
-    onConfirm: (Int, Int) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val timePickerState = rememberTimePickerState(
-        initialHour = initialHour,
-        initialMinute = initialMinute,
-        is24Hour = false
-    )
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Select Time", fontWeight = FontWeight.Bold) },
-        text = {
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                TimePicker(state = timePickerState)
-            }
-        },
-        confirmButton = {
-            Button(onClick = { onConfirm(timePickerState.hour, timePickerState.minute) }) {
-                Text("OK")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
-}
-
-fun formatTime12h(hour: Int, minute: Int): String {
-    val amPm = if (hour < 12) "AM" else "PM"
+fun formatAmPm(hour: Int, minute: Int): String {
     val h = if (hour % 12 == 0) 12 else hour % 12
-    return String.format("%d:%02d %s", h, minute, amPm)
+    val ampm = if (hour < 12) "AM" else "PM"
+    return String.format("%d:%02d %s", h, minute, ampm)
 }
+
+fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier =
+    this.then(Modifier.clickable(interactionSource = androidx.compose.foundation.interaction.MutableInteractionSource(), indication = null, onClick = onClick))
