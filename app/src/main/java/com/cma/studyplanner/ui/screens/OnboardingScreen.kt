@@ -19,7 +19,11 @@ import com.cma.studyplanner.ui.theme.*
 
 val allExams = listOf(
     "── Accounting & Finance ──" to true,
-    "CMA" to false, "CA" to false, "CS" to false, "CPA" to false, "ACCA" to false, "CFA" to false, "FRM" to false,
+    "CMA (Cost & Management Accountant)" to false,
+    "CA (Chartered Accountant)" to false,
+    "CS (Company Secretary)" to false,
+    "CPA (Certified Public Accountant)" to false,
+    "ACCA" to false, "CFA" to false, "FRM" to false, "CIA" to false,
     "── Engineering ──" to true,
     "GATE" to false, "JEE Main" to false, "JEE Advanced" to false, "BITSAT" to false,
     "── Medical ──" to true,
@@ -27,7 +31,8 @@ val allExams = listOf(
     "── Civil Services ──" to true,
     "UPSC CSE" to false, "UPSC CDS" to false, "UPSC NDA" to false, "State PSC" to false,
     "── Banking & SSC ──" to true,
-    "IBPS PO" to false, "SBI PO" to false, "SSC CGL" to false, "SSC CHSL" to false, "RBI Grade B" to false,
+    "IBPS PO" to false, "IBPS Clerk" to false, "SBI PO" to false,
+    "SSC CGL" to false, "SSC CHSL" to false, "RBI Grade B" to false,
     "── MBA ──" to true,
     "CAT" to false, "GMAT" to false, "XAT" to false, "MAT" to false,
     "── Law ──" to true,
@@ -35,11 +40,15 @@ val allExams = listOf(
     "── Abroad ──" to true,
     "GRE" to false, "SAT" to false, "IELTS" to false, "TOEFL" to false, "PTE" to false,
     "── Teaching ──" to true,
-    "UGC NET" to false, "CTET" to false,
+    "UGC NET" to false, "CTET" to false, "TET" to false,
     "── School / College ──" to true,
-    "Board Exams 10th" to false, "Board Exams 12th" to false, "University Semester" to false, "University Finals" to false,
+    "Board Exams (10th)" to false, "Board Exams (12th)" to false,
+    "University Semester" to false, "University Finals" to false,
+    "── Defence ──" to true,
+    "NDA" to false, "CDS" to false, "AFCAT" to false,
     "── Other ──" to true,
-    "Defence" to false, "Railway RRB" to false, "Judiciary" to false, "Other" to false
+    "Railway (RRB)" to false, "Insurance (LIC AAO)" to false,
+    "Judiciary" to false, "Police" to false, "Other" to false
 )
 
 @Composable
@@ -106,7 +115,7 @@ fun OnboardingScreen(onComplete: (String, String, String, String, String) -> Uni
         Spacer(modifier = Modifier.height(14.dp))
 
         FormLabel("Exam Date *")
-        OutlinedTextField(value = examDate, onValueChange = { examDate = it }, placeholder = { Text("YYYY-MM-DD") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), singleLine = true)
+        OutlinedTextField(value = examDate, onValueChange = { examDate = it }, placeholder = { Text("YYYY-MM-DD") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), singleLine = true, leadingIcon = { Text("\uD83D\uDCC5", fontSize = 16.sp) })
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(

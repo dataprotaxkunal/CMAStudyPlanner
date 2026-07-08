@@ -12,19 +12,15 @@ data class Subject(
 
 @Entity(
     tableName = "chapters",
-    foreignKeys = [ForeignKey(
-        entity = Subject::class,
-        parentColumns = ["id"],
-        childColumns = ["subjectId"],
-        onDelete = ForeignKey.CASCADE
-    )],
+    foreignKeys = [ForeignKey(entity = Subject::class, parentColumns = ["id"], childColumns = ["subjectId"], onDelete = ForeignKey.CASCADE)],
     indices = [Index("subjectId")]
 )
 data class Chapter(
     @PrimaryKey val id: String = UUID.randomUUID().toString().take(7),
     val subjectId: String,
     val name: String,
-    val done: Boolean = false
+    val done: Boolean = false,
+    val importantQuestions: String = "" // Store important questions as newline-separated text
 )
 
 @Entity(tableName = "schedules")
@@ -32,9 +28,9 @@ data class Schedule(
     @PrimaryKey val id: String = UUID.randomUUID().toString().take(7),
     val subject: String,
     val chapter: String,
-    val date: String,        // YYYY-MM-DD
-    val startTime: String,   // HH:mm
-    val endTime: String,     // HH:mm
+    val date: String,
+    val startTime: String,
+    val endTime: String,
     val completed: Boolean = false,
     val reminded: Boolean = false,
     val warned: Boolean = false
@@ -47,14 +43,13 @@ data class Revision(
     val subjectName: String,
     val chapterId: String,
     val chapterName: String,
-    val date: String,        // YYYY-MM-DD
+    val date: String,
     val startTime: String = "09:00",
     val endTime: String = "10:00",
     val notes: String = "",
     val completed: Boolean = false
 )
 
-// Relationship helper
 data class SubjectWithChapters(
     @Embedded val subject: Subject,
     @Relation(parentColumn = "id", entityColumn = "subjectId")

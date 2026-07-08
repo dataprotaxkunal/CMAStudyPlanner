@@ -29,154 +29,87 @@ fun RevisionScreen(vm: MainViewModel) {
 
     val today = LocalDate.now().toString()
     val upcoming = revisions.filter { it.date >= today && !it.completed }
-    val completed = revisions.filter { it.completed }
     val overdue = revisions.filter { it.date < today && !it.completed }
+    val completed = revisions.filter { it.completed }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column {
                 Text("Revisions", fontSize = 26.sp, fontWeight = FontWeight.Black)
                 Text("Track your revision schedule", color = Muted, fontSize = 14.sp)
             }
-            Button(
-                onClick = { showAddDialog = true },
-                shape = RoundedCornerShape(10.dp)
-            ) {
+            Button(onClick = { showAddDialog = true }, shape = RoundedCornerShape(10.dp)) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(4.dp))
                 Text("Add")
             }
         }
-
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Stats row
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatCard(
-                title = "Upcoming",
-                value = "${upcoming.size}",
-                icon = "📅",
-                modifier = Modifier.weight(1f)
-            )
-            StatCard(
-                title = "Overdue",
-                value = "${overdue.size}",
-                icon = "⚠️",
-                modifier = Modifier.weight(1f)
-            )
-            StatCard(
-                title = "Done",
-                value = "${completed.size}",
-                icon = "✅",
-                modifier = Modifier.weight(1f)
-            )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            StatCard(title = "Upcoming", value = "${upcoming.size}", icon = "\uD83D\uDCC5", modifier = Modifier.weight(1f))
+            StatCard(title = "Overdue", value = "${overdue.size}", icon = "⚠️", modifier = Modifier.weight(1f))
+            StatCard(title = "Done", value = "${completed.size}", icon = "✅", modifier = Modifier.weight(1f))
         }
-
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Overdue
         if (overdue.isNotEmpty()) {
-            SectionHeader(title = "⚠️ Overdue")
+            Text("⚠️ Overdue", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Red)
             Spacer(modifier = Modifier.height(8.dp))
             overdue.forEach { rev ->
-                RevisionItem(rev, vm, Color(0xFFFEE2E2))
+                RevCard(rev, vm, Color(0xFFFEE2E2))
                 Spacer(modifier = Modifier.height(6.dp))
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Upcoming
-        SectionHeader(title = "📅 Upcoming")
+        Text("📅 Upcoming", fontSize = 15.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
-        if (upcoming.isEmpty()) {
-            EmptyState("📖", "No upcoming revisions")
-        } else {
-            upcoming.forEach { rev ->
-                RevisionItem(rev, vm, Color(0xFFEEF0FF))
-                Spacer(modifier = Modifier.height(6.dp))
-            }
+        if (upcoming.isEmpty()) EmptyState("\uD83D\uDCD6", "No upcoming revisions")
+        else upcoming.forEach { rev ->
+            RevCard(rev, vm, Color(0xFFEEF0FF))
+            Spacer(modifier = Modifier.height(6.dp))
         }
 
-        // Completed
         if (completed.isNotEmpty()) {
             Spacer(modifier = Modifier.height(16.dp))
-            SectionHeader(title = "✅ Completed")
+            Text("✅ Completed", fontSize = 15.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             completed.take(10).forEach { rev ->
-                RevisionItem(rev, vm, Color(0xFFF0FDF4))
+                RevCard(rev, vm, Color(0xFFF0FDF4))
                 Spacer(modifier = Modifier.height(6.dp))
             }
         }
-
         Spacer(modifier = Modifier.height(80.dp))
     }
 
     if (showAddDialog) {
-        AddRevisionDialog(
-            subjects = subjects,
-            onConfirm = { subjectId, chapterId, date, startTime, endTime, notes ->
-                vm.addRevision(subjectId, chapterId, date, startTime, endTime, notes)
+        AddRevisionDialog(subjects = subjects,
+            onConfirm = { subjectId, chapterId, date, st, et, notes ->
+                vm.addRevision(subjectId, chapterId, date, st, et, notes)
                 showAddDialog = false
             },
-            onDismiss = { showAddDialog = false }
-        )
+            onDismiss = { showAddDialog = false })
     }
 }
 
 @Composable
-fun RevisionItem(
-    rev: com.cma.studyplanner.data.Revision,
-    vm: MainViewModel,
-    bgColor: Color
-) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = bgColor)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            CheckButton(
-                checked = rev.completed,
-                onToggle = { vm.toggleRevisionComplete(rev) }
-            )
+fun RevCard(rev: com.cma.studyplanner.data.Revision, vm: MainViewModel, bgColor: Color) {
+    Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = bgColor)) {
+        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            CheckButton(checked = rev.completed, onToggle = { vm.toggleRevisionComplete(rev) })
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(rev.subjectName, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                 Text(rev.chapterName, fontSize = 12.sp, color = Muted)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        vm.formatDateShort(rev.date),
-                        fontSize = 11.sp,
-                        color = Indigo,
-                        fontWeight = FontWeight.Medium
-                    )
-                    if (rev.notes.isNotBlank()) {
-                        Text(
-                            " • ${rev.notes}",
-                            fontSize = 11.sp,
-                            color = Muted,
-                            maxLines = 1
-                        )
-                    }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(vm.formatDateShort(rev.date), fontSize = 11.sp, color = Indigo, fontWeight = FontWeight.Medium)
+                    // AM/PM time display
+                    Text("${formatAmPm(rev.startTime.substringBefore(":").toIntOrNull() ?: 9, rev.startTime.substringAfter(":").toIntOrNull() ?: 0)} - ${formatAmPm(rev.endTime.substringBefore(":").toIntOrNull() ?: 10, rev.endTime.substringAfter(":").toIntOrNull() ?: 0)}", fontSize = 10.sp, color = Muted)
                 }
+                if (rev.notes.isNotBlank()) Text(rev.notes, fontSize = 11.sp, color = Muted)
             }
-            IconButton(
-                onClick = { vm.deleteRevision(rev.id) },
-                modifier = Modifier.size(32.dp)
-            ) {
+            IconButton(onClick = { vm.deleteRevision(rev.id) }, modifier = Modifier.size(32.dp)) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Muted, modifier = Modifier.size(16.dp))
             }
         }
@@ -192,11 +125,15 @@ fun AddRevisionDialog(
     var selectedSubjectId by remember { mutableStateOf("") }
     var selectedChapterId by remember { mutableStateOf("") }
     var date by remember { mutableStateOf(LocalDate.now().toString()) }
-    var startTime by remember { mutableStateOf("09:00") }
-    var endTime by remember { mutableStateOf("10:00") }
     var notes by remember { mutableStateOf("") }
     var subjExpanded by remember { mutableStateOf(false) }
     var chapExpanded by remember { mutableStateOf(false) }
+    var startHour by remember { mutableStateOf(9) }
+    var startMinute by remember { mutableStateOf(0) }
+    var endHour by remember { mutableStateOf(10) }
+    var endMinute by remember { mutableStateOf(0) }
+    var showStartTime by remember { mutableStateOf(false) }
+    var showEndTime by remember { mutableStateOf(false) }
 
     val selectedSubject = subjects.find { it.subject.id == selectedSubjectId }
     val chapters = selectedSubject?.chapters ?: emptyList()
@@ -206,116 +143,59 @@ fun AddRevisionDialog(
         title = { Text("Add Revision", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                ExposedDropdownMenuBox(
-                    expanded = subjExpanded,
-                    onExpandedChange = { subjExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value = selectedSubject?.subject?.name ?: "",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Subject") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = subjExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                    ExposedDropdownMenu(
-                        expanded = subjExpanded,
-                        onDismissRequest = { subjExpanded = false }
-                    ) {
-                        subjects.forEach { swc ->
-                            DropdownMenuItem(
-                                text = { Text(swc.subject.name) },
-                                onClick = {
-                                    selectedSubjectId = swc.subject.id
-                                    selectedChapterId = ""
-                                    subjExpanded = false
-                                }
-                            )
-                        }
+                ExposedDropdownMenuBox(expanded = subjExpanded, onExpandedChange = { subjExpanded = it }) {
+                    OutlinedTextField(value = selectedSubject?.subject?.name ?: "", onValueChange = {}, readOnly = true, label = { Text("Subject") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = subjExpanded) }, modifier = Modifier.menuAnchor().fillMaxWidth(), shape = RoundedCornerShape(10.dp))
+                    ExposedDropdownMenu(expanded = subjExpanded, onDismissRequest = { subjExpanded = false }) {
+                        subjects.forEach { swc -> DropdownMenuItem(text = { Text(swc.subject.name) }, onClick = { selectedSubjectId = swc.subject.id; selectedChapterId = ""; subjExpanded = false }) }
                     }
                 }
-
-                ExposedDropdownMenuBox(
-                    expanded = chapExpanded,
-                    onExpandedChange = { chapExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value = chapters.find { it.id == selectedChapterId }?.name ?: "",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Chapter") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = chapExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                    ExposedDropdownMenu(
-                        expanded = chapExpanded,
-                        onDismissRequest = { chapExpanded = false }
-                    ) {
-                        chapters.forEach { ch ->
-                            DropdownMenuItem(
-                                text = { Text(ch.name) },
-                                onClick = {
-                                    selectedChapterId = ch.id
-                                    chapExpanded = false
-                                }
-                            )
-                        }
+                ExposedDropdownMenuBox(expanded = chapExpanded, onExpandedChange = { chapExpanded = it }) {
+                    OutlinedTextField(value = chapters.find { it.id == selectedChapterId }?.name ?: "", onValueChange = {}, readOnly = true, label = { Text("Chapter") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = chapExpanded) }, modifier = Modifier.menuAnchor().fillMaxWidth(), shape = RoundedCornerShape(10.dp))
+                    ExposedDropdownMenu(expanded = chapExpanded, onDismissRequest = { chapExpanded = false }) {
+                        chapters.forEach { ch -> DropdownMenuItem(text = { Text(ch.name) }, onClick = { selectedChapterId = ch.id; chapExpanded = false }) }
                     }
                 }
+                OutlinedTextField(value = date, onValueChange = { date = it }, label = { Text("Date (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), singleLine = true)
 
-                OutlinedTextField(
-                    value = date,
-                    onValueChange = { date = it },
-                    label = { Text("Date (YYYY-MM-DD)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    singleLine = true
-                )
-
-                // Time row
+                // Time with AM/PM pickers
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
-                        value = startTime,
-                        onValueChange = { startTime = it },
-                        label = { Text("Start") },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
-                        singleLine = true
+                        value = formatAmPm(startHour, startMinute), onValueChange = {}, readOnly = true,
+                        label = { Text("Start Time") }, modifier = Modifier.weight(1f).clickable { showStartTime = true },
+                        shape = RoundedCornerShape(10.dp), enabled = false,
+                        colors = OutlinedTextFieldDefaults.colors(disabledTextColor = MaterialTheme.colorScheme.onSurface, disabledBorderColor = MaterialTheme.colorScheme.outline, disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant)
                     )
                     OutlinedTextField(
-                        value = endTime,
-                        onValueChange = { endTime = it },
-                        label = { Text("End") },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
-                        singleLine = true
+                        value = formatAmPm(endHour, endMinute), onValueChange = {}, readOnly = true,
+                        label = { Text("End Time") }, modifier = Modifier.weight(1f).clickable { showEndTime = true },
+                        shape = RoundedCornerShape(10.dp), enabled = false,
+                        colors = OutlinedTextFieldDefaults.colors(disabledTextColor = MaterialTheme.colorScheme.onSurface, disabledBorderColor = MaterialTheme.colorScheme.outline, disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant)
                     )
                 }
-
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Notes (optional)") },
-                    placeholder = { Text("e.g. Focus on formulas") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    singleLine = true
-                )
+                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes (optional)") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), singleLine = true)
             }
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    if (selectedSubjectId.isNotBlank() && selectedChapterId.isNotBlank()) {
-                        onConfirm(selectedSubjectId, selectedChapterId, date, startTime, endTime, notes)
-                    }
+            Button(onClick = {
+                if (selectedSubjectId.isNotBlank() && selectedChapterId.isNotBlank()) {
+                    onConfirm(selectedSubjectId, selectedChapterId, date, String.format("%02d:%02d", startHour, startMinute), String.format("%02d:%02d", endHour, endMinute), notes)
                 }
-            ) { Text("Add Revision") }
+            }) { Text("Add Revision") }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
+
+    if (showStartTime) {
+        val tps = rememberTimePickerState(initialHour = startHour, initialMinute = startMinute, is24Hour = false)
+        AlertDialog(onDismissRequest = { showStartTime = false }, title = { Text("Start Time") }, text = { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { TimePicker(state = tps) } }, confirmButton = { Button(onClick = { startHour = tps.hour; startMinute = tps.minute; showStartTime = false }) { Text("OK") } }, dismissButton = { TextButton(onClick = { showStartTime = false }) { Text("Cancel") } })
+    }
+    if (showEndTime) {
+        val tps = rememberTimePickerState(initialHour = endHour, initialMinute = endMinute, is24Hour = false)
+        AlertDialog(onDismissRequest = { showEndTime = false }, title = { Text("End Time") }, text = { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { TimePicker(state = tps) } }, confirmButton = { Button(onClick = { endHour = tps.hour; endMinute = tps.minute; showEndTime = false }) { Text("OK") } }, dismissButton = { TextButton(onClick = { showEndTime = false }) { Text("Cancel") } })
+    }
+}
+
+fun formatAmPm(hour: Int, minute: Int): String {
+    val h = if (hour % 12 == 0) 12 else hour % 12
+    return String.format("%d:%02d %s", h, minute, if (hour < 12) "AM" else "PM")
 }

@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cma.studyplanner.ui.components.*
@@ -44,7 +45,6 @@ fun DashboardScreen(vm: MainViewModel) {
     val weeksLeft = daysLeft / 7
     val remaining = total - done
 
-    // Total study hours = schedule + revision completed hours
     val schedHrs = schedules.filter { it.completed }.sumOf { vm.timeDiffMinutes(it.startTime, it.endTime).coerceAtLeast(0) } / 60.0
     val revHrs = revisions.filter { it.completed }.sumOf { vm.timeDiffMinutes(it.startTime, it.endTime).coerceAtLeast(0) } / 60.0
     val studyHours = schedHrs + revHrs
@@ -57,18 +57,20 @@ fun DashboardScreen(vm: MainViewModel) {
         swc.subject.name to (sH + rH)
     }
 
-    // This week hours (Mon-Sun)
+    // Week hours (Mon-Sun)
     val now = LocalDate.now()
-    val weekStart = now.minusDays((now.dayOfWeek.value - 1).toLong()) // Monday
-    val weekEnd = weekStart.plusDays(6) // Sunday
-    val thisWeekHrs = (schedules.filter { it.completed && it.date >= weekStart.toString() && it.date <= weekEnd.toString() }.sumOf { vm.timeDiffMinutes(it.startTime, it.endTime).coerceAtLeast(0) } +
-        revisions.filter { it.completed && it.date >= weekStart.toString() && it.date <= weekEnd.toString() }.sumOf { vm.timeDiffMinutes(it.startTime, it.endTime).coerceAtLeast(0) }) / 60.0
+    val weekStart = now.minusDays((now.dayOfWeek.value - 1).toLong())
+    val weekEnd = weekStart.plusDays(6)
+    val thisWeekHrs = (schedules.filter { it.completed && it.date >= weekStart.toString() && it.date <= weekEnd.toString() }.sumOf { vm.timeDiffMinutes(it.startTime, it.endTime).coerceAtLeast(0) } + revisions.filter { it.completed && it.date >= weekStart.toString() && it.date <= weekEnd.toString() }.sumOf { vm.timeDiffMinutes(it.startTime, it.endTime).coerceAtLeast(0) }) / 60.0
 
-    // This month hours
+    // Month hours
     val monthStart = now.withDayOfMonth(1)
     val monthEnd = now.withDayOfMonth(now.lengthOfMonth())
-    val thisMonthHrs = (schedules.filter { it.completed && it.date >= monthStart.toString() && it.date <= monthEnd.toString() }.sumOf { vm.timeDiffMinutes(it.startTime, it.endTime).coerceAtLeast(0) } +
-        revisions.filter { it.completed && it.date >= monthStart.toString() && it.date <= monthEnd.toString() }.sumOf { vm.timeDiffMinutes(it.startTime, it.endTime).coerceAtLeast(0) }) / 60.0
+    val thisMonthHrs = (schedules.filter { it.completed && it.date >= monthStart.toString() && it.date <= monthEnd.toString() }.sumOf { vm.timeDiffMinutes(it.startTime, it.endTime).coerceAtLeast(0) } + revisions.filter { it.completed && it.date >= monthStart.toString() && it.date <= monthEnd.toString() }.sumOf { vm.timeDiffMinutes(it.startTime, it.endTime).coerceAtLeast(0) }) / 60.0
+
+    // Previous/pending sessions (not today, not completed, date <= today)
+    val today = LocalDate.now().toString()
+    val pendingSessions = schedules.filter { !it.completed && it.date < today }.sortedByDescending { it.date }.take(5)
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         // Greeting
@@ -79,7 +81,6 @@ fun DashboardScreen(vm: MainViewModel) {
                 Text("\"Success is the sum of small efforts repeated daily.\"", fontSize = 11.sp, color = Color.White.copy(alpha = 0.5f))
             }
         }
-
         Spacer(modifier = Modifier.height(10.dp))
 
         // Toggle
@@ -102,7 +103,7 @@ fun DashboardScreen(vm: MainViewModel) {
                             val rc = when { daysLeft < 30 -> Red; daysLeft < 90 -> Amber; else -> Indigo }
                             CircularProgressIndicator(progress = 1f, Modifier.fillMaxSize(), color = rc.copy(alpha = 0.12f), strokeWidth = 5.dp)
                             CircularProgressIndicator(progress = ((365f - daysLeft) / 365f).coerceIn(0f, 1f), Modifier.fillMaxSize(), color = rc, strokeWidth = 5.dp)
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) { Text("$daysLeft", fontSize = 18.sp, fontWeight = FontWeight.Black, color = rc); Text("DAYS", fontSize = 7.sp, fontWeight = FontWeight.Bold, color = Muted) }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) { Text("$daysLeft", fontSize = 18.sp, fontWeight = FontWeight.Black, color = rc); Text("DAYS", fontSize = 7.sp, color = Muted) }
                         }
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
@@ -119,6 +120,7 @@ fun DashboardScreen(vm: MainViewModel) {
                 }
                 Spacer(Modifier.height(12.dp))
             }
+
             // Stats
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 StatCard(title = "Progress", value = "$pct%", icon = "\uD83D\uDCCA", modifier = Modifier.weight(1f))
@@ -127,22 +129,53 @@ fun DashboardScreen(vm: MainViewModel) {
                 StatCard(title = "Subjects", value = "${subjects.size}", icon = "\uD83D\uDCDA", modifier = Modifier.weight(1f))
             }
             Spacer(Modifier.height(14.dp))
+
+            // Previous/Pending sessions
+            if (pendingSessions.isNotEmpty()) {
+                Text("⚠️ Pending Sessions", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Red)
+                Spacer(Modifier.height(6.dp))
+                pendingSessions.forEach { sch ->
+                    val subjIdx = subjects.indexOfFirst { it.subject.name == sch.subject }
+                    val colorIdx = if (subjIdx >= 0) subjects[subjIdx].subject.colorIndex else 0
+                    val color = Color(vm.colors[colorIdx % vm.colors.size])
+                    Card(
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3F3)),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                    ) {
+                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.width(3.dp).height(36.dp).clip(RoundedCornerShape(2.dp)).background(color))
+                            Spacer(Modifier.width(10.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(sch.subject, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextDark)
+                                Text(sch.chapter, fontSize = 11.sp, color = Muted)
+                                Text(vm.formatDateShort(sch.date), fontSize = 10.sp, color = Red, fontWeight = FontWeight.SemiBold)
+                            }
+                            Text("${vm.formatTime12(sch.startTime)}", fontSize = 10.sp, color = color, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(14.dp))
+            }
+
             // Today's sessions
             Text("Today's Sessions", fontSize = 14.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             if (todaySchedules.isEmpty()) { EmptyState("\uD83D\uDCED", "No sessions today") }
-            else { todaySchedules.forEach { sch ->
-                val si = subjects.indexOfFirst { it.subject.name == sch.subject }
-                val ci = if (si >= 0) subjects[si].subject.colorIndex else 0
-                ScheduleItem(sch.subject, sch.chapter, "${vm.formatTime12(sch.startTime)} - ${vm.formatTime12(sch.endTime)}", sch.completed, Color(vm.colors[ci % vm.colors.size]), Color(vm.lightColors[ci % vm.lightColors.size]),
-                    onToggle = { vm.toggleScheduleComplete(sch) }, onDelete = { vm.deleteSchedule(sch.id) }, onEdit = { })
-                Spacer(Modifier.height(5.dp))
-            }}
+            else {
+                todaySchedules.forEach { sch ->
+                    val si = subjects.indexOfFirst { it.subject.name == sch.subject }
+                    val ci = if (si >= 0) subjects[si].subject.colorIndex else 0
+                    ScheduleItem(sch.subject, sch.chapter, "${vm.formatTime12(sch.startTime)} - ${vm.formatTime12(sch.endTime)}", sch.completed,
+                        Color(vm.colors[ci % vm.colors.size]), Color(vm.lightColors[ci % vm.lightColors.size]),
+                        onToggle = { vm.toggleScheduleComplete(sch) }, onDelete = { vm.deleteSchedule(sch.id) }, onEdit = { })
+                    Spacer(Modifier.height(5.dp))
+                }
+            }
         }
 
         // ═══ PROGRESS ═══
         if (dashSection == "progress") {
-            // Overall
             Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(12.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Overall Progress", fontSize = 13.sp, fontWeight = FontWeight.Bold); Text("$pct%", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Indigo) }
@@ -154,7 +187,7 @@ fun DashboardScreen(vm: MainViewModel) {
             }
             Spacer(Modifier.height(14.dp))
 
-            // Study Hours Summary — Week / Month / Total
+            // Study Hours
             Text("Study Hours", fontSize = 14.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -164,13 +197,11 @@ fun DashboardScreen(vm: MainViewModel) {
             }
             Spacer(Modifier.height(14.dp))
 
-            // Weekly Plan
-            Text("Weekly Plan", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(8.dp))
+            // Weekly plan
             val weeklyPlanned = vm.getWeeklyPlannedHours()
             val deficit = (weeklyPlanned - thisWeekHrs.toFloat()).coerceAtLeast(0f)
-            val nextWeek = weeklyPlanned + deficit
-            val examTotalHrs = vm.getExamTotalHours()
+            Text("Weekly Plan", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
             Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(12.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -182,17 +213,17 @@ fun DashboardScreen(vm: MainViewModel) {
                     Spacer(Modifier.height(10.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(if (deficit > 0) "-${String.format("%.1f", deficit)}" else "0", fontSize = 14.sp, fontWeight = FontWeight.Black, color = if (deficit > 0) Red else Green); Text("deficit", fontSize = 9.sp, color = Muted) }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(String.format("%.1f", nextWeek), fontSize = 14.sp, fontWeight = FontWeight.Black, color = Indigo); Text("next week", fontSize = 9.sp, color = Muted) }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(String.format("%.0f", examTotalHrs), fontSize = 14.sp, fontWeight = FontWeight.Black, color = Amber); Text("total hrs", fontSize = 9.sp, color = Muted) }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(String.format("%.1f", weeklyPlanned + deficit), fontSize = 14.sp, fontWeight = FontWeight.Black, color = Indigo); Text("next week", fontSize = 9.sp, color = Muted) }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(String.format("%.0f", vm.getExamTotalHours()), fontSize = 14.sp, fontWeight = FontWeight.Black, color = Amber); Text("total hrs", fontSize = 9.sp, color = Muted) }
                     }
                 }
             }
             Spacer(Modifier.height(14.dp))
 
-            // Subject-wise Hours
+            // Subject-wise
             Text("Subject-wise Hours", fontSize = 14.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
-            subjects.forEachIndexed { i, swc ->
+            subjects.forEach { swc ->
                 val hrs = subjectHours.find { it.first == swc.subject.name }?.second ?: 0.0
                 val d = swc.chapters.count { it.done }; val t = swc.chapters.size
                 val p = if (t > 0) d.toFloat() / t else 0f
@@ -215,7 +246,6 @@ fun DashboardScreen(vm: MainViewModel) {
                 }
             }
         }
-
         Spacer(Modifier.height(80.dp))
     }
 }
