@@ -91,51 +91,9 @@ fun SettingsScreen(vm: MainViewModel) {
         }
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ── Cloud Backup ──
+        // Cloud backup is not configured in this build.
         SectionLabel("☁️ Cloud Sync")
-        Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(1.dp)) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Auto-sync is ON", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Green)
-                Text("Every change auto-saves to cloud", fontSize = 12.sp, color = Muted)
-                Text("Backup ID: $backupId", fontSize = 10.sp, color = Muted, modifier = Modifier.padding(top = 4.dp))
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Full backup
-                Button(onClick = {
-                    scope.launch {
-                        isLoading = true; backupStatus = "Backing up..."
-                        try {
-                            FirebaseSync.signInIfNeeded()
-                            FirebaseSync.backupAll(vm.schedules.value, vm.revisions.value, vm.subjectsWithChapters.value, vm.getPrefs())
-                            backupStatus = "✅ Backup complete!"
-                        } catch (_: Exception) { backupStatus = "❌ Failed. Check internet." }
-                        isLoading = false
-                    }
-                }, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth(), enabled = !isLoading) {
-                    if (isLoading) { CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp); Spacer(Modifier.width(8.dp)) }
-                    Text(backupStatus, fontSize = 13.sp)
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Restore
-                OutlinedButton(onClick = {
-                    scope.launch {
-                        isLoading = true; restoreStatus = "Restoring..."
-                        try {
-                            FirebaseSync.signInIfNeeded()
-                            val data = FirebaseSync.restoreData()
-                            if (data != null) {
-                                vm.restoreFromCloud(data)
-                                restoreStatus = "✅ Restored successfully!"
-                            } else restoreStatus = "❌ No backup found"
-                        } catch (_: Exception) { restoreStatus = "❌ Failed. Check internet." }
-                        isLoading = false
-                    }
-                }, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth(), enabled = !isLoading) {
-                    Text(restoreStatus, fontSize = 13.sp)
-                }
-            }
-        }
+        Text("Cloud backup is not available yet. Your study data is saved on this device.", fontSize = 12.sp, color = Muted)
         Spacer(modifier = Modifier.height(24.dp))
 
         // ── Permissions ──
