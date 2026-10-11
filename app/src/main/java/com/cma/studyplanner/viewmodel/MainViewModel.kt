@@ -213,6 +213,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun updateChapterImportantQuestions(chapter: Chapter, questions: String) {
+        viewModelScope.launch {
+            db.chapterDao().update(chapter.copy(importantQuestions = questions))
+            _toastMessage.emit("✅ Important questions saved")
+        }
+    }
+
+    fun isPinEnabled(): Boolean = prefs.pinEnabled
+    fun isBiometricEnabled(): Boolean = prefs.biometricEnabled
+    fun setPin(pin: String) { prefs.appPin = pin }
+    fun setPinEnabled(enabled: Boolean) { prefs.pinEnabled = enabled }
+    fun setBiometricEnabled(enabled: Boolean) { prefs.biometricEnabled = enabled }
+
     fun toggleChapter(chapter: Chapter) {
         viewModelScope.launch {
             db.chapterDao().update(chapter.copy(done = !chapter.done))
