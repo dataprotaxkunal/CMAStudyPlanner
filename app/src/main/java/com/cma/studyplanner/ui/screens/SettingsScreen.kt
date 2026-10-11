@@ -24,24 +24,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cma.studyplanner.data.FirebaseSync
 import com.cma.studyplanner.ui.theme.*
 import com.cma.studyplanner.viewmodel.MainViewModel
-import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(vm: MainViewModel) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     var studyMin by remember { mutableStateOf(vm.focusStudyMinutes.toString()) }
     var breakMin by remember { mutableStateOf(vm.focusBreakMinutes.toString()) }
     var dndOn by remember { mutableStateOf(vm.dndEnabled) }
     var blockOn by remember { mutableStateOf(vm.appBlockingEnabled) }
     var calSync by remember { mutableStateOf(vm.calendarSyncEnabled) }
-    var backupStatus by remember { mutableStateOf("Backup All Data") }
-    var restoreStatus by remember { mutableStateOf("Restore from Cloud") }
-    var isLoading by remember { mutableStateOf(false) }
-    val backupId = remember { FirebaseSync.getBackupId() }
 
     // Lock settings
     var pinEnabled by remember { mutableStateOf(vm.isPinEnabled()) }
