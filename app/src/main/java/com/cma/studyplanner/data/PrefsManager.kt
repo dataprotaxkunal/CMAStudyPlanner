@@ -7,6 +7,19 @@ class PrefsManager(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("cma_prefs", Context.MODE_PRIVATE)
 
+
+    var appPin: String
+        get() = prefs.getString("app_pin", "") ?: ""
+        set(value) = prefs.edit().putString("app_pin", value).apply()
+
+    var pinEnabled: Boolean
+        get() = prefs.getBoolean("pin_enabled", false)
+        set(value) = prefs.edit().putBoolean("pin_enabled", value).apply()
+
+    var biometricEnabled: Boolean
+        get() = prefs.getBoolean("biometric_enabled", false)
+        set(value) = prefs.edit().putBoolean("biometric_enabled", value).apply()
+
     var whatsappNumber: String
         get() = prefs.getString("whatsapp", "") ?: ""
         set(value) = prefs.edit().putString("whatsapp", value).apply()
