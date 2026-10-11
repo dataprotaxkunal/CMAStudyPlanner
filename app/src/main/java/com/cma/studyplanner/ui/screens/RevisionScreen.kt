@@ -2,6 +2,7 @@
 
 package com.cma.studyplanner.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -193,9 +194,4 @@ fun AddRevisionDialog(
         val tps = rememberTimePickerState(initialHour = endHour, initialMinute = endMinute, is24Hour = false)
         AlertDialog(onDismissRequest = { showEndTime = false }, title = { Text("End Time") }, text = { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { TimePicker(state = tps) } }, confirmButton = { Button(onClick = { endHour = tps.hour; endMinute = tps.minute; showEndTime = false }) { Text("OK") } }, dismissButton = { TextButton(onClick = { showEndTime = false }) { Text("Cancel") } })
     }
-}
-
-fun formatAmPm(hour: Int, minute: Int): String {
-    val h = if (hour % 12 == 0) 12 else hour % 12
-    return String.format("%d:%02d %s", h, minute, if (hour < 12) "AM" else "PM")
 }
