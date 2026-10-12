@@ -91,7 +91,14 @@ fun SettingsScreen(vm: MainViewModel) {
 
         // ── Permissions ──
         SectionLabel("Permissions")
-        PermItem("Do Not Disturb", "Required for DND", isDndOk(context)) { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)) }
+        Text(
+            "For strict focus mode, grant all three permissions below. Star the contacts you want to allow in your phone's Contacts app. Android Priority DND allows starred contacts and repeat callers; emergency-call handling remains controlled by Android and your carrier.",
+            fontSize = 12.sp,
+            color = Muted,
+            lineHeight = 18.sp
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        PermItem("Do Not Disturb", "Allow calls from starred contacts and repeat callers", isDndOk(context)) { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)) }
         Spacer(modifier = Modifier.height(6.dp))
         PermItem("Usage Access", "Required to block apps", isUsageOk(context)) { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
         Spacer(modifier = Modifier.height(6.dp))
@@ -114,9 +121,9 @@ fun SettingsScreen(vm: MainViewModel) {
         SectionLabel("Focus Mode")
         Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(1.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                TogRow("Enable DND", "Silence during focus", dndOn) { dndOn = it; vm.updateDndEnabled(it) }
+                TogRow("Enable call-aware DND", "Allow starred contacts and repeat callers", dndOn) { dndOn = it; vm.updateDndEnabled(it) }
                 Divider(modifier = Modifier.padding(vertical = 10.dp), color = Border)
-                TogRow("Block Apps", "Block all except essentials", blockOn) { blockOn = it; vm.updateAppBlocking(it) }
+                TogRow("Strict app blocking", "Redirect distracting apps during focus", blockOn) { blockOn = it; vm.updateAppBlocking(it) }
                 Divider(modifier = Modifier.padding(vertical = 10.dp), color = Border)
                 NumRow("Study", studyMin) { studyMin = it; it.toIntOrNull()?.let { m -> vm.updateFocusStudy(m) } }
                 Spacer(modifier = Modifier.height(8.dp))
