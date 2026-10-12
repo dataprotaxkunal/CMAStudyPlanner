@@ -152,7 +152,7 @@ class FocusService : Service() {
             }
 
             val pkg = foregroundPackage ?: return
-            if (pkg == packageName || pkg in prefs.whitelistedPackages || pkg.startsWith("com.android.")) {
+            if (pkg == packageName || pkg in prefs.whitelistedPackages) {
                 lastBlockedPackage = null
                 return
             }
