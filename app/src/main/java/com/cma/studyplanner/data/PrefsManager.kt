@@ -78,10 +78,12 @@ class PrefsManager(context: Context) {
         get() = prefs.getFloat("weekly_deficit", 0f)
         set(value) = prefs.edit().putFloat("weekly_deficit", value).apply()
 
+    // Keep only calling UI and essential navigation/system packages available during strict focus.
+    // Messaging apps are intentionally excluded so they are blocked during a study session.
     val whitelistedPackages: Set<String>
         get() = setOf(
             "com.android.dialer", "com.google.android.dialer", "com.samsung.android.dialer",
-            "com.android.messaging", "com.google.android.apps.messaging", "com.samsung.android.messaging",
+            "com.android.phone", "com.android.server.telecom",
             "com.android.settings", "com.cma.studyplanner", "com.android.systemui",
             "com.android.launcher", "com.android.launcher3",
             "com.google.android.apps.nexuslauncher", "com.sec.android.app.launcher"
