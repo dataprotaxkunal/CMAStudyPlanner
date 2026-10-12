@@ -122,11 +122,16 @@ fun DashboardScreen(vm: MainViewModel) {
             }
 
             // Stats
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatCard(title = "Progress", value = "$pct%", icon = "\uD83D\uDCCA", modifier = Modifier.weight(1f))
-                StatCard(title = "Today", value = "${todaySchedules.size}", icon = "\uD83D\uDCC5", modifier = Modifier.weight(1f))
-                StatCard(title = "Hours", value = String.format("%.1f", studyHours), icon = "\u23F1\uFE0F", modifier = Modifier.weight(1f))
-                StatCard(title = "Subjects", value = "${subjects.size}", icon = "\uD83D\uDCDA", modifier = Modifier.weight(1f))
+            // Two-column stat grid keeps labels and values aligned on narrow phones.
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    StatCard(title = "Progress", value = "$pct%", icon = "\uD83D\uDCCA", modifier = Modifier.weight(1f))
+                    StatCard(title = "Today's Sessions", value = "${todaySchedules.size}", icon = "\uD83D\uDCC5", modifier = Modifier.weight(1f))
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    StatCard(title = "Study Hours", value = String.format("%.1f", studyHours), icon = "\u23F1\uFE0F", modifier = Modifier.weight(1f))
+                    StatCard(title = "Subjects", value = "${subjects.size}", icon = "\uD83D\uDCDA", modifier = Modifier.weight(1f))
+                }
             }
             Spacer(Modifier.height(14.dp))
 
