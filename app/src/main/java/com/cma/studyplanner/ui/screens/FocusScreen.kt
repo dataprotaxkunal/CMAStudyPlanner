@@ -2,6 +2,7 @@
 
 package com.cma.studyplanner.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,6 +34,9 @@ fun FocusScreen(vm: MainViewModel, onClose: () -> Unit) {
     val totalSeconds by vm.focusTotalSeconds.collectAsState()
     val mode by vm.focusMode.collectAsState()
     val sessions by vm.focusSessions.collectAsState()
+    var showExitConfirm by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = active) { showExitConfirm = true }
 
     // Timer tick
     LaunchedEffect(active, paused) {
@@ -67,8 +71,7 @@ fun FocusScreen(vm: MainViewModel, onClose: () -> Unit) {
                 horizontalArrangement = Arrangement.End
             ) {
                 IconButton(onClick = {
-                    if (active) vm.stopFocus()
-                    onClose()
+                    if (active) showExitConfirm = true else onClose()
                 }) {
                     Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White.copy(alpha = 0.6f))
                 }
@@ -177,7 +180,7 @@ fun FocusScreen(vm: MainViewModel, onClose: () -> Unit) {
                 // Stop
                 if (active) {
                     IconButton(
-                        onClick = { vm.stopFocus() },
+                        onClick = { showExitConfirm = true },
                         modifier = Modifier
                             .size(56.dp)
                             .border(2.dp, Color.White.copy(alpha = 0.2f), CircleShape)
@@ -230,6 +233,25 @@ fun FocusScreen(vm: MainViewModel, onClose: () -> Unit) {
                     lineHeight = 20.sp
                 )
             }
+        }
+        if (showExitConfirm) {
+            AlertDialog(
+                onDismissRequest = { showExitConfirm = false },
+                title = { Text("End strict focus mode?") },
+                text = {
+                    Text("Ending now will stop app restrictions and restore your previous Do Not Disturb settings. Your study timer will stop.")
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showExitConfirm = false
+                        vm.stopFocus()
+                        onClose()
+                    }) { Text("End session") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showExitConfirm = false }) { Text("Keep studying") }
+                }
+            )
         }
     }
 }
