@@ -288,10 +288,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun rescheduleUpcomingAlarms() {
+        viewModelScope.launch {
+            val today = LocalDate.now().toString()
+            db.scheduleDao().getAllOnce()
+                .filter { !it.completed && it.date >= today }
+                .forEach { scheduleAlarm(it) }
+            scheduleMorningAlarm()
+        }
+    }
+
     private fun scheduleAlarm(schedule: Schedule) {
         try {
             val context = getApplication<android.app.Application>()
             val alarmManager = context.getSystemService(android.content.Context.ALARM_SERVICE) as android.app.AlarmManager
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S &&
+                !alarmManager.canScheduleExactAlarms()
+            ) {
+                _toastMessage.tryEmit("Alarms are disabled: allow 'Alarms & reminders' in Android app settings.")
+                return
+            }
 
             val dateParts = schedule.date.split("-").map { it.toInt() }
             val timeParts = schedule.startTime.split(":").map { it.toInt() }
