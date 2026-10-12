@@ -104,6 +104,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainAppWithOnboarding(vm: MainViewModel) {
+    LaunchedEffect(Unit) { vm.rescheduleUpcomingAlarms() }
     var onboarded by remember { mutableStateOf(vm.isOnboarded()) }
 
     if (!onboarded) {
