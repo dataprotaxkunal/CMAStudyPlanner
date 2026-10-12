@@ -34,14 +34,33 @@ class ReminderReceiver : BroadcastReceiver() {
         val time = intent.getStringExtra("time") ?: ""
 
         if (isAlarm) {
-            // Full-screen alarm — like an incoming call
+            // Android 10+ restricts launching activities directly from a background receiver.
+            // Use a high-importance full-screen notification, the supported alarm/call pattern.
             val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 putExtra("subject", subject)
                 putExtra("chapter", chapter)
                 putExtra("time", time)
             }
-            context.startActivity(alarmIntent)
+            val alarmPending = PendingIntent.getActivity(
+                context, System.currentTimeMillis().toInt(), alarmIntent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            val alarmNotification = NotificationCompat.Builder(context, CMAApp.CHANNEL_REMINDER)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setFullScreenIntent(alarmPending, true)
+                .setContentIntent(alarmPending)
+                .setOngoing(true)
+                .setAutoCancel(false)
+                .setVibrate(longArrayOf(0, 700, 300, 700, 300))
+                .build()
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.notify(99001, alarmNotification)
         } else {
             // Regular 5-minute warning notification
             val openIntent = PendingIntent.getActivity(
