@@ -192,7 +192,7 @@ fun SubjectsScreen(vm: MainViewModel) {
     showImportantQ?.let { chapter ->
         ImportantQuestionsDialog(
             chapter = chapter,
-            onSave = { questions -> vm.updateChapterImportantQuestions(chapter.id, questions); showImportantQ = null },
+            onSave = { questions -> vm.updateChapterImportantQuestions(chapter, questions); showImportantQ = null },
             onDismiss = { showImportantQ = null }
         )
     }
