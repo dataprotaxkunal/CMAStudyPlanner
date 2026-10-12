@@ -36,7 +36,7 @@ fun FocusScreen(vm: MainViewModel, onClose: () -> Unit) {
     val sessions by vm.focusSessions.collectAsState()
     var showExitConfirm by remember { mutableStateOf(false) }
 
-    BackHandler(enabled = active) { showExitConfirm = true }
+    BackHandler(enabled = active && !showExitConfirm) { showExitConfirm = true }
 
     // Timer tick
     LaunchedEffect(active, paused) {
