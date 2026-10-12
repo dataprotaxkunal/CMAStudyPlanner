@@ -179,19 +179,12 @@ class FocusService : Service() {
             this, 0, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-        val stopIntent = PendingIntent.getService(
-            this, 1,
-            Intent(this, FocusService::class.java).apply { action = ACTION_STOP },
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-
         return NotificationCompat.Builder(this, CMAApp.CHANNEL_FOCUS)
             .setContentTitle("📚 Strict Focus Mode Active")
             .setContentText("Starred contacts and repeat callers can reach you")
             .setSmallIcon(R.drawable.ic_focus)
             .setOngoing(true)
             .setContentIntent(pendingIntent)
-            .addAction(R.drawable.ic_stop, "End focus", stopIntent)
             .build()
     }
 
